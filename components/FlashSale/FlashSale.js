@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 const saleProducts = [
   {
@@ -100,7 +101,7 @@ export default function FlashSale() {
         <div className="lg:w-5/12 bg-white/60 backdrop-blur-sm p-6 md:p-8 flex items-center relative z-10 border-l border-white/50">
           <div className="w-full space-y-4">
             {saleProducts.map((product) => (
-              <div key={product.id} className="bg-white p-4 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all border border-[#E5E5E5] cursor-pointer group hover:-translate-y-1">
+              <Link href="/product/240158" key={product.id} className="bg-white p-4 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all border border-[#E5E5E5] cursor-pointer group hover:-translate-y-1 block">
                 <div className="w-20 h-20 md:w-24 md:h-24 bg-[#F8F8F6] rounded-xl relative overflow-hidden shrink-0">
                   <Image 
                     src={product.image} 
@@ -121,7 +122,7 @@ export default function FlashSale() {
                     <path d="M5 12h14M12 5l7 7-7 7"/>
                   </svg>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

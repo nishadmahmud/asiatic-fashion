@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import Link from "next/link";
 
 const arrivals = [
   {
@@ -53,7 +56,7 @@ export default function NewArrivals() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {arrivals.map((product) => (
-          <div key={product.id} className="group cursor-pointer">
+          <Link href="/product/240158" key={product.id} className="group cursor-pointer block">
             <div className="relative aspect-[3/4] bg-[#F8F8F6] rounded-2xl overflow-hidden mb-4">
               <Image
                 src={product.image}
@@ -71,7 +74,13 @@ export default function NewArrivals() {
               
               {/* Quick Add overlay */}
               <div className="absolute inset-x-4 bottom-4 translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-10">
-                <button className="w-full bg-white/90 backdrop-blur-sm text-[#1A1A1A] font-semibold py-3 rounded-xl hover:bg-[#E8611A] hover:text-white transition-colors shadow-lg">
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  className="w-full bg-white/90 backdrop-blur-sm text-[#1A1A1A] font-semibold py-3 rounded-xl hover:bg-[#E8611A] hover:text-white transition-colors shadow-lg"
+                >
                   Quick Add
                 </button>
               </div>
@@ -81,7 +90,7 @@ export default function NewArrivals() {
               {product.name}
             </h3>
             <p className="font-bold text-[#6B6B6B]">${product.price}</p>
-          </div>
+          </Link>
         ))}
       </div>
     </section>

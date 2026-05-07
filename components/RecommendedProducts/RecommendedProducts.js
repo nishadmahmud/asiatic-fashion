@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 const products = [
   {
@@ -67,7 +68,7 @@ function RecommendedCard({ product }) {
   const [liked, setLiked] = useState(false);
 
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden border border-[#E5E5E5]/50 hover:shadow-xl hover:border-[#E5E5E5] transition-all duration-300 hover:-translate-y-1">
+    <Link href="/product/240158" className="group bg-white rounded-2xl overflow-hidden border border-[#E5E5E5]/50 hover:shadow-xl hover:border-[#E5E5E5] transition-all duration-300 hover:-translate-y-1 block">
       {/* Image */}
       <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden">
         <Image
@@ -80,12 +81,16 @@ function RecommendedCard({ product }) {
         />
         {/* Wishlist */}
         <button
-          onClick={() => setLiked(!liked)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setLiked(!liked);
+          }}
           className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
             liked
               ? "bg-[#E8611A]/10 text-[#E8611A]"
               : "bg-white/80 backdrop-blur-sm text-[#999999] hover:bg-white hover:text-[#E8611A]"
-          } shadow-sm`}
+          } shadow-sm z-10`}
           aria-label="Add to wishlist"
         >
           <svg
@@ -116,12 +121,12 @@ function RecommendedCard({ product }) {
           <span className="text-xs text-[#999999] line-through">
             ${product.originalPrice}
           </span>
-          <span className="text-xs font-bold text-[#E8611A] bg-[#E8611A]-light px-1.5 py-0.5 rounded-md">
+          <span className="text-xs font-bold text-[#E8611A] bg-[#FFF3ED] px-1.5 py-0.5 rounded-md">
             -{product.discount}%
           </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
