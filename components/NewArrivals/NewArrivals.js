@@ -1,96 +1,68 @@
 "use client";
 
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import ProductCard from "@/components/ProductCard/ProductCard";
+import { getNewArrivalsFromServer, getCampaigns } from "@/lib/api";
+import { transformProduct, buildCampaignDiscountMap } from "@/lib/transformProduct";
 
-const arrivals = [
-  {
-    id: 1,
-    name: "Urban Explorer Hoodie",
-    price: 85,
-    image: "/images/products/hoodie.png",
-    isNew: true,
-  },
-  {
-    id: 2,
-    name: "Classic Leather Loafers",
-    price: 145,
-    image: "/images/products/watch.png",
-    isNew: true,
-  },
-  {
-    id: 3,
-    name: "Minimalist Linen Shirt",
-    price: 65,
-    image: "/images/products/casual_shirt.png",
-    isNew: true,
-  },
-  {
-    id: 4,
-    name: "Oversized Denim Jacket",
-    price: 115,
-    image: "/images/products/jacket.png",
-    isNew: true,
-  },
+const dummyProducts = [
+  { id: 1, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
+  { id: 2, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
+  { id: 3, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1594938298596-af014bd07b98?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
+  { id: 4, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1593998066526-65fcab3021a2?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
 ];
 
 export default function NewArrivals() {
+  const [products, setProducts] = useState(dummyProducts);
+
+  useEffect(() => {
+    const fetchNewArrivals = async () => {
+      try {
+        const response = await getNewArrivalsFromServer();
+
+        if (response.success && response.data && response.data.data && response.data.data.length > 0) {
+          // Also fetch campaigns to overlay discounts
+          let campaignMap = {};
+          try {
+            const campaignsRes = await getCampaigns();
+            if (campaignsRes?.success && Array.isArray(campaignsRes?.campaigns?.data)) {
+              const active = campaignsRes.campaigns.data.filter((c) => c?.status === "active");
+              campaignMap = buildCampaignDiscountMap(active);
+            }
+          } catch (e) {
+            console.error("Campaign fetch error:", e);
+          }
+
+          const apiProducts = response.data.data
+            .slice(0, 8)
+            .map((p) => transformProduct(p, campaignMap));
+          setProducts(apiProducts);
+        }
+      } catch (error) {
+        console.error("Error fetching new arrivals:", error);
+      }
+    };
+    fetchNewArrivals();
+  }, []);
+
   return (
-    <section className="w-full max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 py-10 md:py-16">
-      <div className="flex items-end justify-between mb-8 md:mb-10">
-        <div>
-          <h2 className="text-3xl md:text-4xl font-bold text-[#1A1A1A] mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
-            New Arrivals
-          </h2>
-          <p className="text-[#6B6B6B] text-sm md:text-base">
-            Discover the latest trends straight from the runway.
-          </p>
-        </div>
-        <a href="#" className="hidden sm:flex items-center gap-1 text-[#E8611A] font-semibold hover:gap-2 transition-all">
-          View All Collection
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </a>
+    <section className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-10 md:py-16">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#E5E5E5]">
+        <h2 className="text-sm font-bold tracking-widest uppercase text-[#1A1A1A]">
+          New Arrivals
+        </h2>
+        <Link
+          href="/category/16167"
+          className="text-xs font-bold tracking-widest uppercase text-[#999999] hover:text-[#1A1A1A] transition-colors"
+        >
+          View All
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {arrivals.map((product) => (
-          <Link href="/product/240158" key={product.id} className="group cursor-pointer block">
-            <div className="relative aspect-[3/4] bg-[#F8F8F6] rounded-2xl overflow-hidden mb-4">
-              <Image
-                src={product.image}
-                alt={product.name}
-                fill
-                unoptimized
-                className="object-cover object-center group-hover:scale-105 transition-transform duration-700"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-              />
-              {product.isNew && (
-                <div className="absolute top-4 left-4 bg-[#1A1A1A] text-white text-[10px] font-bold px-3 py-1.5 rounded-full tracking-wider z-10">
-                  NEW
-                </div>
-              )}
-              
-              {/* Quick Add overlay */}
-              <div className="absolute inset-x-4 bottom-4 translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-10">
-                <button 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  className="w-full bg-white/90 backdrop-blur-sm text-[#1A1A1A] font-semibold py-3 rounded-xl hover:bg-[#E8611A] hover:text-white transition-colors shadow-lg"
-                >
-                  Quick Add
-                </button>
-              </div>
-            </div>
-            
-            <h3 className="font-medium text-[#1A1A1A] text-lg mb-1 group-hover:text-[#E8611A] transition-colors">
-              {product.name}
-            </h3>
-            <p className="font-bold text-[#6B6B6B]">${product.price}</p>
-          </Link>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16">
+        {products.map((product) => (
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
     </section>

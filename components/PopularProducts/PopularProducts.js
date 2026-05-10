@@ -1,169 +1,74 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import ProductCard from "@/components/ProductCard/ProductCard";
+import { getProducts, getCampaigns } from "@/lib/api";
+import { transformProduct, buildCampaignDiscountMap } from "@/lib/transformProduct";
 
-const filters = ["ALL", "SHORTS", "JACKETS", "SHOES", "T-SHIRT"];
-
-const products = [
-  {
-    id: 1,
-    name: "Casual Shirt",
-    price: 225,
-    image: "/images/products/casual_shirt.png",
-    category: "T-SHIRT",
-  },
-  {
-    id: 2,
-    name: "Sunglass",
-    price: 125,
-    image: "/images/products/sunglass.png",
-    category: "SHORTS",
-  },
-  {
-    id: 3,
-    name: "Galaxy Watch",
-    price: 75,
-    image: "/images/products/watch.png",
-    category: "SHORTS",
-  },
-  {
-    id: 4,
-    name: "Gery T-shirt",
-    price: 120,
-    image: "/images/products/jacket.png",
-    category: "JACKETS",
-  },
-  {
-    id: 5,
-    name: "Premium Jacket",
-    price: 185,
-    image: "/images/products/green_jacket.png",
-    category: "JACKETS",
-  },
-  {
-    id: 6,
-    name: "Hoodie Winter",
-    price: 95,
-    image: "/images/products/hoodie.png",
-    category: "T-SHIRT",
-  },
-  {
-    id: 7,
-    name: "Modern Blazer",
-    price: 245,
-    image: "/images/products/polo.png",
-    category: "T-SHIRT",
-  },
-  {
-    id: 8,
-    name: "White Hoodie",
-    price: 110,
-    image: "/images/products/hoodie_white.png",
-    category: "T-SHIRT",
-  },
+const dummyProducts = [
+  { id: 1, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
+  { id: 2, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
+  { id: 3, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1594938298596-af014bd07b98?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
+  { id: 4, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1593998066526-65fcab3021a2?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
 ];
 
-function HeartIcon({ filled }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill={filled ? "#E8611A" : "none"}
-      stroke={filled ? "#E8611A" : "currentColor"}
-      strokeWidth="2"
-    >
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
-  );
-}
-
-function ProductCard({ product }) {
-  const [liked, setLiked] = useState(false);
-
-  return (
-    <Link href="/product/240158" className="group bg-white rounded-2xl overflow-hidden border border-[#E5E5E5]/50 hover:shadow-xl hover:border-[#E5E5E5] transition-all duration-300 hover:-translate-y-1 block">
-      {/* Image */}
-      <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden">
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          unoptimized
-          className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
-          sizes="(max-width: 768px) 50vw, 25vw"
-        />
-        {/* Wishlist */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setLiked(!liked);
-          }}
-          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-            liked
-              ? "bg-[#E8611A]/10 text-[#E8611A]"
-              : "bg-white/80 backdrop-blur-sm text-[#999999] hover:bg-white hover:text-[#E8611A]"
-          } shadow-sm z-10`}
-          aria-label="Add to wishlist"
-        >
-          <HeartIcon filled={liked} />
-        </button>
-      </div>
-
-      {/* Info */}
-      <div className="p-3 md:p-4">
-        <h4 className="text-sm font-medium text-[#1A1A1A] truncate">
-          {product.name}
-        </h4>
-        <p className="text-sm font-bold text-[#1A1A1A] mt-1">
-          ${product.price}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
 export default function PopularProducts() {
-  const [activeFilter, setActiveFilter] = useState("ALL");
+  const [products, setProducts] = useState(dummyProducts);
 
-  const filteredProducts =
-    activeFilter === "ALL"
-      ? products
-      : products.filter((p) => p.category === activeFilter);
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await getProducts(1);
+
+        // The API may return data in response.data or response.data.data
+        let rawProducts = [];
+        if (Array.isArray(response?.data)) {
+          rawProducts = response.data;
+        } else if (Array.isArray(response?.data?.data)) {
+          rawProducts = response.data.data;
+        }
+
+        if (rawProducts.length > 0) {
+          let campaignMap = {};
+          try {
+            const campaignsRes = await getCampaigns();
+            if (campaignsRes?.success && Array.isArray(campaignsRes?.campaigns?.data)) {
+              const active = campaignsRes.campaigns.data.filter((c) => c?.status === "active");
+              campaignMap = buildCampaignDiscountMap(active);
+            }
+          } catch (e) {
+            console.error("Campaign fetch error:", e);
+          }
+
+          const apiProducts = rawProducts
+            .slice(0, 8)
+            .map((p) => transformProduct(p, campaignMap));
+          setProducts(apiProducts);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   return (
-    <section className="w-full max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 py-8 md:py-12" id="products">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8">
-        <h2 className="text-2xl md:text-3xl font-semibold text-[#1A1A1A]">
-          Popular products
+    <section className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-10 md:py-16" id="products">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#E5E5E5]">
+        <h2 className="text-sm font-bold tracking-widest uppercase text-[#1A1A1A]">
+          Popular Items
         </h2>
-
-        {/* Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          {filters.map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all duration-300 ${
-                activeFilter === filter
-                  ? "bg-[#E8611A] text-white shadow-md shadow-[#E8611A]/25"
-                  : "bg-white text-[#6B6B6B] border border-[#E5E5E5] hover:border-[#6B6B6B]"
-              }`}
-              id={`prod-filter-${filter.toLowerCase()}`}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
+        <Link
+          href="/category/16167"
+          className="text-xs font-bold tracking-widest uppercase text-[#999999] hover:text-[#1A1A1A] transition-colors"
+        >
+          View All
+        </Link>
       </div>
 
-      {/* Product Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-        {filteredProducts.map((product) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16">
+        {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>

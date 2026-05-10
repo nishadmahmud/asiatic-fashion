@@ -1,0 +1,1040 @@
+{
+    "info": {
+        "_postman_id": "brand-empire-api",
+        "name": "Brand Empire API Collection",
+        "description": "Complete API endpoints for Brand Empire e-commerce application",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "BASE_URL",
+            "value": "{{NEXT_PUBLIC_API}}",
+            "type": "string"
+        },
+        {
+            "key": "USER_ID",
+            "value": "{{NEXT_PUBLIC_USER_ID}}",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Public - Categories & Navigation",
+            "item": [
+                {
+                    "name": "Get Categories",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/categories/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "categories",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch all categories with subcategories and child categories"
+                    }
+                },
+                {
+                    "name": "Get Featured Categories",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/featured-categories/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "featured-categories",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch featured categories for homepage"
+                    }
+                },
+                {
+                    "name": "Get Menu/Header Data",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/headers/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "headers",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch navigation menu data"
+                    }
+                },
+                {
+                    "name": "Get Footer Data",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/footers/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "footers",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch footer content and links"
+                    }
+                },
+                {
+                    "name": "Get Topbar Data",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/topbars/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "topbars",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch topbar announcements and contact info"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Public - Banners & Sliders",
+            "item": [
+                {
+                    "name": "Get Sliders",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/sliders/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "sliders",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch homepage sliders/carousels"
+                    }
+                },
+                {
+                    "name": "Get Banners",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/banners/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "banners",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch promotional banners"
+                    }
+                },
+                {
+                    "name": "Get Popup Banners",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/popups/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "popups",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch popup banner/modal content"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Public - Products",
+            "item": [
+                {
+                    "name": "Get Products (Paginated)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/products/userwise?user_id={{USER_ID}}&page=1&per_page=20&category_id=0",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "products",
+                                "userwise"
+                            ],
+                            "query": [
+                                {
+                                    "key": "user_id",
+                                    "value": "{{USER_ID}}"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "category_id",
+                                    "value": "0"
+                                },
+                                {
+                                    "key": "subcategory_id",
+                                    "value": "0",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Fetch products with pagination and optional category filter"
+                    }
+                },
+                {
+                    "name": "Get Product Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/products-detail/:product_id",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "products-detail",
+                                ":product_id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "product_id",
+                                    "value": "123",
+                                    "description": "Product ID"
+                                }
+                            ]
+                        },
+                        "description": "Fetch single product details by ID"
+                    }
+                },
+                {
+                    "name": "Get Category-wise Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/categorywise-products/:category_id?page=1",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "categorywise-products",
+                                ":category_id"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "category_id",
+                                    "value": "1",
+                                    "description": "Category ID"
+                                }
+                            ]
+                        },
+                        "description": "Fetch products by main category"
+                    }
+                },
+                {
+                    "name": "Get Subcategory-wise Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/subcategorywise-products/:subcategory_id?page=1",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "subcategorywise-products",
+                                ":subcategory_id"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "subcategory_id",
+                                    "value": "1",
+                                    "description": "Subcategory ID"
+                                }
+                            ]
+                        },
+                        "description": "Fetch products by subcategory"
+                    }
+                },
+                {
+                    "name": "Get Child Category-wise Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/childcategorywise-products/:child_id?page=1",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "childcategorywise-products",
+                                ":child_id"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "child_id",
+                                    "value": "1",
+                                    "description": "Child Category ID"
+                                }
+                            ]
+                        },
+                        "description": "Fetch products by child category"
+                    }
+                },
+                {
+                    "name": "Get New Arrivals",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/new-arrivals/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "new-arrivals",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch new arrival products"
+                    }
+                },
+                {
+                    "name": "Get Related Products",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"product_id\": \"123\",\n    \"user_id\": \"{{USER_ID}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/get-related-products",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "get-related-products"
+                            ]
+                        },
+                        "description": "Fetch related products for a given product"
+                    }
+                },
+                {
+                    "name": "Search Products",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"keyword\": \"jeans\",\n    \"user_id\": \"{{USER_ID}}\",\n    \"limit\": 1000\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/search-product",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "search-product"
+                            ]
+                        },
+                        "description": "Search for products by keyword"
+                    }
+                },
+                {
+                    "name": "Filter Products by Attributes",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/filter-products?user_id={{USER_ID}}&page=1&attribute_value_ids[]=1&attribute_value_ids[]=2",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "filter-products"
+                            ],
+                            "query": [
+                                {
+                                    "key": "user_id",
+                                    "value": "{{USER_ID}}"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "attribute_value_ids[]",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "attribute_value_ids[]",
+                                    "value": "2"
+                                }
+                            ]
+                        },
+                        "description": "Filter products by attribute value IDs (size, color, etc.)"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Public - Brands",
+            "item": [
+                {
+                    "name": "Get Top Brands",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/brands/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "brands",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch all brands"
+                    }
+                },
+                {
+                    "name": "Get Brand-wise Products",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/brandwise-products/:brand_id/{{USER_ID}}?page=1&limit=20",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "brandwise-products",
+                                ":brand_id",
+                                "{{USER_ID}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "brand_id",
+                                    "value": "1",
+                                    "description": "Brand ID"
+                                }
+                            ]
+                        },
+                        "description": "Fetch products by brand"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Public - Campaigns & Offers",
+            "item": [
+                {
+                    "name": "Get Campaigns",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/campaigns/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "campaigns",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch active campaigns/offers with products"
+                    }
+                },
+                {
+                    "name": "Get New Customer Discount",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/new-customer-discount/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "new-customer-discount",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch new customer discount products"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Public - Coupons",
+            "item": [
+                {
+                    "name": "Get Coupon List",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/coupon-list/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "coupon-list",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch available coupons"
+                    }
+                },
+                {
+                    "name": "Collect Coupon",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"coupon_code\": \"SAVE20\",\n    \"customer_id\": 123,\n    \"user_id\": \"{{USER_ID}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/collect-coupon",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "collect-coupon"
+                            ]
+                        },
+                        "description": "Collect/claim a coupon for a customer"
+                    }
+                },
+                {
+                    "name": "Apply Coupon",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"coupon_name\": \"SAVE20\",\n    \"coupon_code\": \"SAVE20\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/apply-coupon",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "apply-coupon"
+                            ]
+                        },
+                        "description": "Apply coupon code at checkout"
+                    }
+                },
+                {
+                    "name": "Get Customer Coupons",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/get-customer-coupon/:customer_id",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "get-customer-coupon",
+                                ":customer_id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "customer_id",
+                                    "value": "123",
+                                    "description": "Customer ID"
+                                }
+                            ]
+                        },
+                        "description": "Fetch coupons collected by a customer"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Public - Attributes & Filters",
+            "item": [
+                {
+                    "name": "Get Attributes with Values",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/get-attribute-with-values/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "get-attribute-with-values",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch all attributes (Size, Color, etc.) with their values for filters"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Public - Reviews",
+            "item": [
+                {
+                    "name": "Get Product Reviews",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/get-product-reviews/:product_id?page=1",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "get-product-reviews",
+                                ":product_id"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "product_id",
+                                    "value": "123",
+                                    "description": "Product ID"
+                                }
+                            ]
+                        },
+                        "description": "Fetch reviews for a product"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Public - Blogs",
+            "item": [
+                {
+                    "name": "Get Blog Posts",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/latest-ecommerce-blog-list/{{USER_ID}}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "latest-ecommerce-blog-list",
+                                "{{USER_ID}}"
+                            ]
+                        },
+                        "description": "Fetch latest blog posts"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Public - Orders",
+            "item": [
+                {
+                    "name": "Save Sales Order (Checkout)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"user_id\": \"{{USER_ID}}\",\n    \"customer_id\": 123,\n    \"name\": \"John Doe\",\n    \"phone\": \"01700000000\",\n    \"email\": \"john@example.com\",\n    \"address\": \"123 Main St\",\n    \"city\": \"Dhaka\",\n    \"zip_code\": \"1000\",\n    \"note\": \"Please call before delivery\",\n    \"delivery_charge\": 60,\n    \"sub_total\": 2500,\n    \"total\": 2560,\n    \"coupon_discount\": 0,\n    \"coupon_code\": \"\",\n    \"payment_method\": \"COD\",\n    \"product_ids\": \"101,102\",\n    \"quantities\": \"2,1\",\n    \"prices\": \"1000,1500\",\n    \"colors\": \"Black,Blue\",\n    \"sizes\": \"M,L\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/public/ecommerce-save-sales",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "public",
+                                "ecommerce-save-sales"
+                            ]
+                        },
+                        "description": "Submit an order (checkout)"
+                    }
+                },
+                {
+                    "name": "Track Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"invoice_id\": \"INV-2024-001\",\n    \"user_id\": \"{{USER_ID}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/search-web-invoice",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "search-web-invoice"
+                            ]
+                        },
+                        "description": "Track order by invoice ID"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Customer - Authentication",
+            "item": [
+                {
+                    "name": "Customer Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"customer@example.com\",\n    \"password\": \"password123\",\n    \"user_id\": \"{{USER_ID}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/customer-login",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "customer-login"
+                            ]
+                        },
+                        "description": "Customer login - returns token on success"
+                    }
+                },
+                {
+                    "name": "Customer Registration",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"phone\": \"01700000000\",\n    \"email\": \"johndoe@example.com\",\n    \"password\": \"password123\",\n    \"user_id\": \"{{USER_ID}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/customer-registration",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "customer-registration"
+                            ]
+                        },
+                        "description": "Register a new customer account"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Customer - Profile (Auth Required)",
+            "item": [
+                {
+                    "name": "Update Customer Profile",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{AUTH_TOKEN}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"phone\": \"01700000000\",\n    \"email\": \"johndoe@example.com\",\n    \"address\": \"123 Main St, Dhaka\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/customer/update-profile",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "customer",
+                                "update-profile"
+                            ]
+                        },
+                        "description": "Update customer profile (requires auth token)"
+                    }
+                },
+                {
+                    "name": "Update Customer Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{AUTH_TOKEN}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"johndoe@example.com\",\n    \"current_password\": \"oldpassword\",\n    \"new_password\": \"newpassword123\",\n    \"new_password_confirmation\": \"newpassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/customer/update-password",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "customer",
+                                "update-password"
+                            ]
+                        },
+                        "description": "Change customer password (requires auth token)"
+                    }
+                },
+                {
+                    "name": "Get Customer Orders",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{AUTH_TOKEN}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"type\": \"1\",\n    \"customer_id\": 123,\n    \"limit\": \"10\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/customer-order-list",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "customer-order-list"
+                            ]
+                        },
+                        "description": "Get customer order history (requires auth token)"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Customer - Reviews (Auth Required)",
+            "item": [
+                {
+                    "name": "Save Product Review",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{AUTH_TOKEN}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"product_id\": 123,\n    \"customer_id\": 456,\n    \"rating\": 5,\n    \"title\": \"Great product!\",\n    \"review\": \"This product exceeded my expectations.\",\n    \"images\": [\"image1.jpg\", \"image2.jpg\"],\n    \"user_id\": \"{{USER_ID}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/customer/save-customer-review",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "customer",
+                                "save-customer-review"
+                            ]
+                        },
+                        "description": "Submit a product review (requires auth token)"
+                    }
+                },
+                {
+                    "name": "Upload Review Media",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{AUTH_TOKEN}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "files[]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "user_id",
+                                    "value": "{{USER_ID}}",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/customer/multiple-file-upload",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "customer",
+                                "multiple-file-upload"
+                            ]
+                        },
+                        "description": "Upload images/videos for review (requires auth token)"
+                    }
+                }
+            ]
+        }
+    ]
+}

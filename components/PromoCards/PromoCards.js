@@ -1,52 +1,81 @@
-import Image from "next/image";
+"use client";
 
-const cards = [
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { getBannerFromServer } from "@/lib/api";
+
+const dummyCards = [
   {
-    title: "Where dreams meet couture",
-    bg: "bg-[#F5EDDA]",
-    image: "/images/promo/promo_couture.png",
-    alt: "Elegant couture fashion",
+    id: 1,
+    title: "The Signature Collection",
+    image: "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&q=80&w=1200",
   },
   {
-    title: "Enchanting styles for every women",
-    bg: "bg-[#F8E4E4]",
-    image: "/images/promo/promo_women.png",
-    alt: "Smart casual fashion style",
+    id: 2,
+    title: "Summer Essentials",
+    image: "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&q=80&w=1200",
   },
 ];
 
 export default function PromoCards() {
+  const [cards, setCards] = useState(dummyCards);
+
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const response = await getBannerFromServer();
+        if (response.success && response.banners && response.banners.length > 0) {
+          // Use non-featured banners for promo cards
+          const promoBanners = response.banners
+            .filter((b) => b.type !== "featured" && b.status === 1)
+            .slice(0, 2)
+            .map((banner) => ({
+              id: banner.id,
+              title: banner.title || banner.description || "Shop Now",
+              image: banner.image_path,
+              link: banner.button_url || "/category/16167",
+            }));
+          if (promoBanners.length > 0) setCards(promoBanners);
+        }
+      } catch (error) {
+        console.error("Error fetching banners:", error);
+      }
+    };
+    fetchBanners();
+  }, []);
+
   return (
-    <section className="w-full max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 py-4 md:py-6" id="promo-section">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        {cards.map((card, index) => (
+    <section className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-10" id="promo-section">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+        {cards.map((card) => (
           <div
-            key={index}
-            className={`${card.bg} rounded-2xl overflow-hidden flex items-stretch min-h-[180px] md:min-h-[220px] group cursor-pointer hover:shadow-lg transition-shadow duration-300`}
+            key={card.id}
+            className="relative h-[400px] md:h-[500px] lg:h-[600px] bg-[#F8F8F6] overflow-hidden group"
           >
-            {/* Text */}
-            <div className="flex flex-col justify-end p-5 md:p-7 flex-1">
-              <h3
-                className="text-xl md:text-2xl lg:text-[26px] font-bold text-[#1A1A1A] leading-snug max-w-[200px]"
-                style={{ fontFamily: "'Playfair Display', serif" }}
-              >
+            <Image
+              src={card.image}
+              alt={card.title}
+              fill
+              unoptimized
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+
+            <div className="absolute bottom-0 left-0 w-full p-8 md:p-12">
+              <h3 className="text-white text-2xl md:text-3xl font-bold tracking-tight mb-6 uppercase">
                 {card.title}
               </h3>
-              <button className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white text-[#1A1A1A] text-xs font-semibold rounded-full border border-[#E5E5E5] hover:bg-[#1A1A1A] hover:text-white transition-all duration-300 w-fit">
-                Shop Now
-              </button>
-            </div>
-
-            {/* Image */}
-            <div className="relative w-[45%] min-w-[140px]">
-              <Image
-                src={card.image}
-                alt={card.alt}
-                fill
-                unoptimized
-                className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                sizes="(max-width: 768px) 45vw, 25vw"
-              />
+              <Link
+                href={card.link || "/category/16167"}
+                className="inline-flex items-center gap-2 text-white text-xs font-bold tracking-widest uppercase hover:opacity-70 transition-opacity"
+              >
+                Discover More
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </Link>
             </div>
           </div>
         ))}

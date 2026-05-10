@@ -3,31 +3,79 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-
-const saleProducts = [
-  {
-    id: 101,
-    name: "Limited Edition Jacket",
-    originalPrice: 299,
-    salePrice: 149,
-    image: "/images/products/green_jacket.png",
-  },
-  {
-    id: 102,
-    name: "Designer Sunglasses",
-    originalPrice: 150,
-    salePrice: 89,
-    image: "/images/products/sunglass.png",
-  },
-];
+import { getCampaigns } from "@/lib/api";
 
 export default function FlashSale() {
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 12,
-    minutes: 45,
-    seconds: 30,
-  });
+  const [campaign, setCampaign] = useState(null);
+  const [saleProducts, setSaleProducts] = useState([]);
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        const response = await getCampaigns();
+        if (response?.success && Array.isArray(response?.campaigns?.data)) {
+          const activeCampaigns = response.campaigns.data.filter(
+            (c) => c?.status === "active"
+          );
+          if (activeCampaigns.length > 0) {
+            const cam = activeCampaigns[0];
+            setCampaign(cam);
+
+            // Calculate time left from end_date
+            if (cam.end_date) {
+              const endDate = new Date(cam.end_date);
+              const now = new Date();
+              const diff = Math.max(0, endDate - now);
+              setTimeLeft({
+                hours: Math.floor(diff / (1000 * 60 * 60)),
+                minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+                seconds: Math.floor((diff % (1000 * 60)) / 1000),
+              });
+            } else {
+              setTimeLeft({ hours: 12, minutes: 45, seconds: 30 });
+            }
+
+            // Transform campaign products
+            const products = (cam.products || []).slice(0, 4).map((p) => {
+              const mrp = Number(p.retails_price || 0);
+              const discountType = String(
+                p?.pivot?.discount_type || cam.discount_type || "percentage"
+              ).toLowerCase();
+              const discountValue = Number(p?.pivot?.discount ?? cam.discount ?? 0);
+              let finalPrice = mrp;
+
+              if (discountType === "amount") {
+                finalPrice = Math.max(0, mrp - discountValue);
+              } else {
+                finalPrice = Math.max(0, Math.round(mrp * (1 - discountValue / 100)));
+              }
+
+              const images =
+                Array.isArray(p.image_paths) && p.image_paths.length > 0
+                  ? p.image_paths
+                  : [p.image_path].filter(Boolean);
+
+              return {
+                id: p.id,
+                name: p.name,
+                brand: p.brand_name || p.brands?.name || "ASIATIC",
+                originalPrice: mrp,
+                salePrice: finalPrice,
+                image: images[0] || "",
+              };
+            });
+            setSaleProducts(products);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching campaigns:", error);
+      }
+    };
+    fetchCampaigns();
+  }, []);
+
+  // Countdown timer
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -40,9 +88,7 @@ export default function FlashSale() {
             minutes--;
           } else {
             minutes = 59;
-            if (hours > 0) {
-              hours--;
-            }
+            if (hours > 0) hours--;
           }
         }
         return { hours, minutes, seconds };
@@ -51,85 +97,107 @@ export default function FlashSale() {
     return () => clearInterval(timer);
   }, []);
 
+  // Don't render if no active campaigns
+  if (!campaign && saleProducts.length === 0) {
+    return null;
+  }
+
+  const campaignTitle = campaign?.title || "Private Sale";
+  const discountText = campaign?.discount
+    ? `Up to ${campaign.discount}${campaign.discount_type === "amount" ? "৳" : "%"} Off`
+    : "Up to 50% Off";
+
   return (
-    <section className="w-full max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 py-10 md:py-16">
-      <div className="bg-[#FFF3ED] rounded-3xl overflow-hidden flex flex-col lg:flex-row relative shadow-xl border border-[#E8611A]/20">
-        
-        {/* Left Side: Content & Timer */}
-        <div className="flex-1 p-8 md:p-12 lg:p-16 flex flex-col justify-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#E8611A] text-white rounded-full text-sm font-bold tracking-wide w-fit mb-6 shadow-md shadow-[#E8611A]/30">
-            <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-            FLASH SALE
+    <section className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-10 md:py-16">
+      <div className="bg-[#F8F8F6] flex flex-col lg:flex-row relative border border-[#E5E5E5]">
+        {/* Left Side */}
+        <div className="flex-1 p-8 md:p-12 lg:p-20 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-[#E5E5E5]">
+          <div className="inline-flex items-center gap-2 text-[#1A1A1A] text-[10px] font-bold tracking-widest uppercase mb-6">
+            <span className="w-2 h-2 bg-[#1A1A1A] animate-pulse"></span>
+            {campaignTitle}
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold text-[#1A1A1A] mb-4 leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-            Up to 50% Off<br />Premium Styles
+          <h2 className="text-3xl md:text-5xl font-bold text-[#1A1A1A] mb-4 leading-[1.1] tracking-tight uppercase">
+            {discountText}<br />Selected Styles
           </h2>
-          <p className="text-[#6B6B6B] mb-8 max-w-md text-sm md:text-base">
-            Hurry up! These exclusive deals are only available for a limited time. Grab your favorites before they are gone.
+          <p className="text-[#6B6B6B] mb-10 max-w-md text-sm leading-relaxed">
+            Exclusive access to our archive sale. Limited quantities available.
           </p>
 
-          {/* Countdown Timer */}
-          <div className="flex items-center gap-4 mb-8">
-            <div className="flex flex-col items-center">
-              <div className="w-14 h-14 md:w-16 md:h-16 bg-white rounded-xl flex items-center justify-center text-2xl md:text-3xl font-bold text-[#E8611A] shadow-sm border border-[#E5E5E5]">
-                {String(timeLeft.hours).padStart(2, "0")}
+          {/* Countdown */}
+          <div className="flex items-center gap-6 mb-10">
+            {[
+              { val: timeLeft.hours, label: "Hrs" },
+              { val: timeLeft.minutes, label: "Min" },
+              { val: timeLeft.seconds, label: "Sec" },
+            ].map((unit, i) => (
+              <div key={unit.label} className="flex items-center gap-6">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`w-16 h-16 flex items-center justify-center text-2xl font-bold ${
+                      i === 2
+                        ? "bg-[#1A1A1A] text-white"
+                        : "bg-white border border-[#1A1A1A] text-[#1A1A1A]"
+                    }`}
+                  >
+                    {String(unit.val).padStart(2, "0")}
+                  </div>
+                  <span className="text-[10px] text-[#1A1A1A] mt-3 font-bold uppercase tracking-widest">
+                    {unit.label}
+                  </span>
+                </div>
+                {i < 2 && <span className="text-2xl font-bold text-[#1A1A1A] -mt-6">:</span>}
               </div>
-              <span className="text-xs text-[#6B6B6B] mt-2 font-bold uppercase tracking-wider">Hours</span>
-            </div>
-            <span className="text-2xl font-bold text-[#1A1A1A]/30 -mt-6">:</span>
-            <div className="flex flex-col items-center">
-              <div className="w-14 h-14 md:w-16 md:h-16 bg-white rounded-xl flex items-center justify-center text-2xl md:text-3xl font-bold text-[#E8611A] shadow-sm border border-[#E5E5E5]">
-                {String(timeLeft.minutes).padStart(2, "0")}
-              </div>
-              <span className="text-xs text-[#6B6B6B] mt-2 font-bold uppercase tracking-wider">Mins</span>
-            </div>
-            <span className="text-2xl font-bold text-[#1A1A1A]/30 -mt-6">:</span>
-            <div className="flex flex-col items-center">
-              <div className="w-14 h-14 md:w-16 md:h-16 bg-[#E8611A] rounded-xl flex items-center justify-center text-2xl md:text-3xl font-bold text-white shadow-lg shadow-[#E8611A]/30">
-                {String(timeLeft.seconds).padStart(2, "0")}
-              </div>
-              <span className="text-xs text-[#E8611A] mt-2 font-bold uppercase tracking-wider">Secs</span>
-            </div>
+            ))}
           </div>
 
-          <button className="bg-[#1A1A1A] text-white px-8 py-3.5 rounded-full font-bold hover:bg-[#E8611A] transition-all duration-300 w-fit shadow-lg">
-            Shop Sale Now
-          </button>
+          <Link
+            href="/category/16167"
+            className="bg-[#1A1A1A] text-white px-8 py-4 text-xs font-bold tracking-widest uppercase hover:bg-[#333333] transition-colors w-fit"
+          >
+            Shop The Edit
+          </Link>
         </div>
 
         {/* Right Side: Products */}
-        <div className="lg:w-5/12 bg-white/60 backdrop-blur-sm p-6 md:p-8 flex items-center relative z-10 border-l border-white/50">
-          <div className="w-full space-y-4">
-            {saleProducts.map((product) => (
-              <Link href="/product/240158" key={product.id} className="bg-white p-4 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all border border-[#E5E5E5] cursor-pointer group hover:-translate-y-1 block">
-                <div className="w-20 h-20 md:w-24 md:h-24 bg-[#F8F8F6] rounded-xl relative overflow-hidden shrink-0">
-                  <Image 
-                    src={product.image} 
-                    alt={product.name} 
-                    fill 
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+        <div className="lg:w-5/12 bg-white p-6 md:p-12 flex items-center justify-center">
+          <div className="w-full space-y-6">
+            {saleProducts.slice(0, 2).map((product) => (
+              <Link
+                href={`/product/${product.id}`}
+                key={product.id}
+                className="group flex items-center gap-6 p-4 border border-transparent hover:border-[#E5E5E5] transition-colors"
+              >
+                <div className="w-24 h-32 bg-[#F8F8F6] relative overflow-hidden shrink-0">
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    unoptimized
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-[#1A1A1A] font-bold text-sm md:text-base line-clamp-1 mb-1">{product.name}</h4>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#E8611A] font-extrabold text-lg">${product.salePrice}</span>
-                    <span className="text-[#999999] text-sm line-through font-medium">${product.originalPrice}</span>
+                  <span className="text-[10px] text-[#999999] tracking-widest uppercase font-bold">
+                    {product.brand}
+                  </span>
+                  <h4 className="text-[#1A1A1A] font-medium text-xs leading-relaxed mb-2 line-clamp-2">
+                    {product.name}
+                  </h4>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#1A1A1A] font-bold text-sm">
+                      ৳{product.salePrice.toLocaleString()}
+                    </span>
+                    {product.originalPrice > product.salePrice && (
+                      <span className="text-[#999999] text-xs line-through">
+                        ৳{product.originalPrice.toLocaleString()}
+                      </span>
+                    )}
                   </div>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-[#FFF3ED] flex items-center justify-center text-[#E8611A] group-hover:bg-[#E8611A] group-hover:text-white transition-colors shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
                 </div>
               </Link>
             ))}
           </div>
         </div>
-
-        {/* Background decorative elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 z-0 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#E8611A]/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 z-0 pointer-events-none"></div>
       </div>
     </section>
   );

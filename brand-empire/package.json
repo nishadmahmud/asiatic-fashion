@@ -1,0 +1,27 @@
+{
+  "name": "brand-empire",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "isomorphic-dompurify": "^2.35.0",
+    "lucide-react": "^0.562.0",
+    "next": "^16.1.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-hot-toast": "^2.6.0",
+    "react-quill-new": "^3.7.0",
+    "react-select": "^5.10.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "tailwindcss": "^4"
+  }
+}

@@ -1,4 +1,7 @@
 import { Inter, Playfair_Display } from "next/font/google";
+import { AuthProvider } from "@/context/AuthContext";
+import { WishlistProvider } from "@/context/WishlistContext";
+import AuthDrawer from "@/components/AuthDrawer/AuthDrawer";
 import "./globals.css";
 
 const inter = Inter({
@@ -23,7 +26,14 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          <WishlistProvider>
+            {children}
+            <AuthDrawer />
+          </WishlistProvider>
+        </AuthProvider>
+      </body>
     </html>
   );
 }
