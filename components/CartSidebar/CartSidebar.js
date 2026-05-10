@@ -100,13 +100,19 @@ const CartSidebar = () => {
                                 >
                                     {/* Product Image */}
                                     <div className="relative w-24 h-[120px] flex-shrink-0 bg-[#F8F8F6]">
-                                        <Image
-                                            src={item.image}
-                                            alt={item.name}
-                                            fill
-                                            unoptimized
-                                            className="object-cover"
-                                        />
+                                        {item.image ? (
+                                            <Image
+                                                src={typeof item.image === 'string' ? item.image : '/placeholder.png'}
+                                                alt={item.name || 'Product'}
+                                                fill
+                                                unoptimized
+                                                className="object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-[10px] text-[#999999] uppercase tracking-widest">
+                                                No Image
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Product Details */}
@@ -186,13 +192,15 @@ const CartSidebar = () => {
 
                         {/* Buttons */}
                         <div className="space-y-3">
-                            <Link
-                                href="/checkout"
-                                onClick={() => setIsCartOpen(false)}
+                            <button
+                                onClick={() => {
+                                    setIsCartOpen(false);
+                                    router.push('/checkout');
+                                }}
                                 className="block w-full py-4 text-center bg-[#1A1A1A] text-white font-bold uppercase tracking-widest text-xs hover:bg-[#333333] transition-colors"
                             >
                                 Checkout
-                            </Link>
+                            </button>
                             <button
                                 onClick={() => setIsCartOpen(false)}
                                 className="block w-full py-4 text-center border border-[#1A1A1A] text-[#1A1A1A] font-bold uppercase tracking-widest text-xs hover:bg-[#1A1A1A] hover:text-white transition-colors"

@@ -77,7 +77,7 @@ export const CartProvider = ({ children }) => {
                 item.price = parseFloat(product.price || product.retail_price || 0);
                 item.originalPrice = product.originalPrice || product.mrp_price ? parseFloat(product.originalPrice || product.mrp_price) : null;
                 item.discount = product.discount || null;
-                item.image = product.images?.[0] || product.image_path || product.image;
+                item.image = product.image_paths?.[0] || product.images?.[0] || product.image_path || product.image;
                 item.brand = product.brand || item.brand;
                 item.maxStock = product.currentStock || item.maxStock || 99;
                 item.variantStockMap = product.variantStockMap || item.variantStockMap || {};
@@ -92,7 +92,7 @@ export const CartProvider = ({ children }) => {
                     price: parseFloat(product.price || product.retail_price || 0),
                     originalPrice: product.originalPrice || product.mrp_price ? parseFloat(product.originalPrice || product.mrp_price) : null,
                     discount: product.discount || null,
-                    image: product.images?.[0] || product.image_path || product.image,
+                    image: product.image_paths?.[0] || product.images?.[0] || product.image_path || product.image,
                     quantity: quantity,
                     selectedSize: selectedSize,
                     selectedColor: selectedColor,

@@ -6,8 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { saveSalesOrder, getCouponList, applyCoupon, requestCustomerOtp, verifyCustomerOtp } from "@/lib/api";
-import { MapPin, CreditCard, ShoppingBag, Shield, Truck, User, Phone, Loader2, CheckCircle } from "lucide-react";
+import { saveSalesOrder, getCouponList, applyCoupon } from "@/lib/api";
+import { MapPin, CreditCard, ShoppingBag, Shield, Truck, User, Phone, Loader2 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import AddressSelect from "@/components/AddressSelect/AddressSelect";
 import { trackBeginCheckout, trackPurchase } from "@/lib/gtm";
@@ -15,7 +15,6 @@ import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 
 export default function CheckoutPage() {
-    const PHONE_VERIFICATION_STORAGE_KEY = "asiaticFashionCheckoutPhoneVerification";
     const { cartItems: allCartItems, getSubtotal, deliveryFee, updateDeliveryFee, clearCart } = useCart();
 
     const cartItems = allCartItems.filter(item => item.selected);
@@ -49,18 +48,6 @@ export default function CheckoutPage() {
     const [acceptedCheckoutPolicies, setAcceptedCheckoutPolicies] = useState(false);
     const [checkoutValidationMessage, setCheckoutValidationMessage] = useState("");
 
-    // OTP States
-    const [isOtpSending, setIsOtpSending] = useState(false);
-    const [isOtpVerifying, setIsOtpVerifying] = useState(false);
-    const [showOtpModal, setShowOtpModal] = useState(false);
-    const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
-    const [otpResendCooldown, setOtpResendCooldown] = useState(0);
-    const [otpVerified, setOtpVerified] = useState(false);
-    const [verifiedPhone, setVerifiedPhone] = useState("");
-    const [otpSuccessInModal, setOtpSuccessInModal] = useState(false);
-    const [otpNotice, setOtpNotice] = useState("");
-    const [otpErrorMessage, setOtpErrorMessage] = useState("");
-
     const formRef = useRef(null);
     const hasTrackedBeginCheckoutRef = useRef(false);
 
@@ -85,27 +72,6 @@ export default function CheckoutPage() {
     }, []);
 
     useEffect(() => {
-        try {
-            const raw = localStorage.getItem(PHONE_VERIFICATION_STORAGE_KEY);
-            if (!raw) return;
-            const parsed = JSON.parse(raw);
-            if (parsed?.verified && parsed?.phone) {
-                setVerifiedPhone(String(parsed.phone));
-            }
-        } catch (e) {
-            console.error("Failed to parse saved phone verification", e);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (!formData.phone) {
-            setOtpVerified(false);
-            return;
-        }
-        setOtpVerified(verifiedPhone === formData.phone);
-    }, [formData.phone, verifiedPhone]);
-
-    useEffect(() => {
         if (user) {
             setFormData((prev) => ({
                 ...prev,
@@ -116,23 +82,6 @@ export default function CheckoutPage() {
             }));
         }
     }, [user]);
-
-    useEffect(() => {
-        if (otpResendCooldown <= 0) return;
-        const timer = setInterval(() => {
-            setOtpResendCooldown((prev) => Math.max(prev - 1, 0));
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [otpResendCooldown]);
-
-    useEffect(() => {
-        if (!showOtpModal) return;
-        const focusTimer = setTimeout(() => {
-            const firstInput = document.getElementById("checkout-otp-0");
-            if (firstInput) firstInput.focus();
-        }, 80);
-        return () => clearTimeout(focusTimer);
-    }, [showOtpModal]);
 
     useEffect(() => {
         if (!selectedDistrict && !selectedCity) {
@@ -261,121 +210,6 @@ export default function CheckoutPage() {
         }
     };
 
-    const requestOtp = async (phone) => {
-        const normalizedPhone = String(phone || "").trim();
-        const phoneRegex = /^01[3-9]\d{8}$/;
-        if (!phoneRegex.test(normalizedPhone)) {
-            toast.error("Please enter a valid 11-digit Bangladeshi phone number first.");
-            return;
-        }
-
-        setIsOtpSending(true);
-        try {
-            const response = await requestCustomerOtp(normalizedPhone);
-            
-            if (response?.success === false) {
-                throw new Error(response?.message || "Failed to send OTP. Please try again.");
-            }
-            setOtpDigits(["", "", "", ""]);
-            setOtpSuccessInModal(false);
-            setOtpErrorMessage("");
-            setOtpNotice("");
-            setShowOtpModal(true);
-            setOtpResendCooldown(30);
-            toast.success("OTP sent to your phone number.");
-        } catch (otpError) {
-            toast.error(otpError.message || "Could not send OTP.");
-        } finally {
-            setIsOtpSending(false);
-        }
-    };
-
-    const handleOtpDigitChange = (index, value) => {
-        const numericValue = value.replace(/\D/g, "").slice(0, 1);
-        let nextOtp = [];
-        setOtpDigits((prev) => {
-            const next = [...prev];
-            next[index] = numericValue;
-            nextOtp = next;
-            return next;
-        });
-        if (numericValue && index < 3) {
-            const nextInput = document.getElementById(`checkout-otp-${index + 1}`);
-            if (nextInput) nextInput.focus();
-        }
-        if (numericValue && index === 3) {
-            const joined = nextOtp.join("");
-            if (joined.length === 4 && !isOtpVerifying) {
-                setTimeout(() => handleVerifyOtp(joined), 120);
-            }
-        }
-    };
-
-    const handleOtpPaste = (e) => {
-        e.preventDefault();
-        const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 4);
-        if (!pasted) return;
-        const nextOtp = ["", "", "", ""];
-        pasted.split("").forEach((digit, idx) => {
-            if (idx < 4) nextOtp[idx] = digit;
-        });
-        setOtpDigits(nextOtp);
-        const focusIndex = Math.min(pasted.length, 4) - 1;
-        if (focusIndex >= 0) {
-            const input = document.getElementById(`checkout-otp-${focusIndex}`);
-            if (input) input.focus();
-        }
-        if (pasted.length === 4 && !isOtpVerifying) {
-            setTimeout(() => handleVerifyOtp(nextOtp.join("")), 120);
-        }
-    };
-
-    const handleVerifyOtp = async (forcedOtpCode = null) => {
-        let otpCode = forcedOtpCode || otpDigits.join("");
-        
-        if (otpCode.length !== 4) {
-            toast.error("Please enter the 4-digit OTP.");
-            setOtpErrorMessage("Please enter the 4-digit OTP.");
-            return;
-        }
-
-        setIsOtpVerifying(true);
-        setOtpErrorMessage("");
-        setOtpNotice("Verifying OTP...");
-        try {
-            const response = await verifyCustomerOtp(formData.phone, Number(otpCode));
-            
-            if (response?.success === false) {
-                throw new Error(response?.message || "Invalid OTP. Please try again.");
-            }
-            setOtpVerified(true);
-            setVerifiedPhone(formData.phone);
-            setOtpSuccessInModal(true);
-            setOtpNotice("OTP verified successfully. You can now complete your order.");
-            setCheckoutValidationMessage("");
-            localStorage.setItem(
-                PHONE_VERIFICATION_STORAGE_KEY,
-                JSON.stringify({
-                    phone: formData.phone,
-                    verified: true,
-                    verifiedAt: new Date().toISOString(),
-                })
-            );
-            toast.success("Phone number verified.");
-            
-            setTimeout(() => {
-                setShowOtpModal(false);
-            }, 800);
-        } catch (otpError) {
-            const message = otpError?.message || "OTP verification failed.";
-            setOtpNotice("");
-            setOtpErrorMessage(message);
-            toast.error(message);
-        } finally {
-            setIsOtpVerifying(false);
-        }
-    };
-
     const handleSubmit = async () => {
         const failCheckout = (message) => {
             setCheckoutValidationMessage(message);
@@ -411,11 +245,6 @@ export default function CheckoutPage() {
         const phoneRegex = /^01[3-9]\d{8}$/;
         if (!phoneRegex.test(formData.phone)) {
             failCheckout("Please enter a valid 11-digit Bangladeshi phone number");
-            return;
-        }
-
-        if (!otpVerified || verifiedPhone !== formData.phone) {
-            failCheckout("Please verify your phone number first to place order.");
             return;
         }
 
@@ -637,23 +466,9 @@ export default function CheckoutPage() {
                                                         name="phone"
                                                         value={formData.phone}
                                                         onChange={handleChange}
-                                                        className="block w-full h-12 border border-[#E5E5E5] bg-transparent pl-10 pr-28 text-sm text-[#1A1A1A] placeholder:text-[#999999] focus:border-[#1A1A1A] focus:outline-none transition-colors"
+                                                        className="block w-full h-12 border border-[#E5E5E5] bg-transparent pl-10 pr-3 text-sm text-[#1A1A1A] placeholder:text-[#999999] focus:border-[#1A1A1A] focus:outline-none transition-colors"
                                                         placeholder="01XXXXXXXXX"
                                                     />
-                                                    {otpVerified && verifiedPhone === formData.phone ? (
-                                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center bg-[#E8611A]/10 px-3 py-1 text-[10px] font-bold text-[#E8611A] tracking-widest uppercase">
-                                                            Verified
-                                                        </span>
-                                                    ) : (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => requestOtp(formData.phone)}
-                                                            disabled={isOtpSending || !/^01[3-9]\d{8}$/.test(formData.phone)}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#1A1A1A] px-4 py-1.5 text-[10px] tracking-widest uppercase font-bold text-white transition hover:bg-[#333333] disabled:cursor-not-allowed disabled:opacity-50"
-                                                        >
-                                                            {isOtpSending ? "Sending..." : "Verify"}
-                                                        </button>
-                                                    )}
                                                 </div>
                                                 {formData.phone && !/^01[3-9]\d{8}$/.test(formData.phone) && (
                                                     <p className="text-[10px] tracking-widest text-red-500 uppercase">
@@ -761,12 +576,19 @@ export default function CheckoutPage() {
                                         {cartItems.map((item, idx) => (
                                             <div key={idx} className="flex gap-4">
                                                 <div className="relative h-20 w-16 flex-shrink-0 bg-[#F8F8F6]">
-                                                    <Image
-                                                        src={item.image}
-                                                        alt={item.name}
-                                                        fill
-                                                        className="object-cover"
-                                                    />
+                                                    {item.image ? (
+                                                        <Image
+                                                            src={typeof item.image === 'string' ? item.image : '/placeholder.png'}
+                                                            alt={item.name || 'Product'}
+                                                            fill
+                                                            unoptimized
+                                                            className="object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-[8px] text-[#999999] uppercase tracking-widest text-center px-1">
+                                                            No Image
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="flex flex-1 flex-col justify-center">
                                                     <p className="text-xs font-bold text-[#1A1A1A] uppercase tracking-widest truncate max-w-[180px]">
@@ -916,114 +738,6 @@ export default function CheckoutPage() {
                 </div>
             </div>
 
-            {/* OTP Modal */}
-            {showOtpModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="w-full max-w-sm rounded-none bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200 border border-[#E5E5E5]">
-                        <div className="text-center">
-                            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#F8F8F6]">
-                                <Shield className="h-6 w-6 text-[#1A1A1A]" />
-                            </div>
-                            <h3 className="text-lg font-bold text-[#1A1A1A] tracking-widest uppercase">Verify Phone</h3>
-                            <p className="mt-2 text-xs text-[#666666] tracking-widest uppercase">
-                                Enter the 4-digit code sent to<br />
-                                <span className="font-bold text-[#1A1A1A] mt-1 block">{formData.phone}</span>
-                            </p>
-                        </div>
-
-                        {otpSuccessInModal ? (
-                            <div className="mt-8 text-center">
-                                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-50">
-                                    <CheckCircle className="h-6 w-6 text-green-500" />
-                                </div>
-                                <p className="text-xs font-bold text-green-600 tracking-widest uppercase">Verification Successful!</p>
-                                <p className="mt-2 text-[10px] text-[#999999] tracking-widest uppercase">Returning to checkout...</p>
-                            </div>
-                        ) : (
-                            <div className="mt-8">
-                                <div 
-                                    className="flex justify-center gap-3"
-                                    onPaste={handleOtpPaste}
-                                >
-                                    {otpDigits.map((digit, idx) => (
-                                        <input
-                                            key={idx}
-                                            id={`checkout-otp-${idx}`}
-                                            type="text"
-                                            inputMode="numeric"
-                                            pattern="\d*"
-                                            maxLength={1}
-                                            value={digit}
-                                            onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Backspace" && !digit && idx > 0) {
-                                                    const prev = document.getElementById(`checkout-otp-${idx - 1}`);
-                                                    if (prev) {
-                                                        prev.focus();
-                                                        let nextOtp = [...otpDigits];
-                                                        nextOtp[idx - 1] = "";
-                                                        setOtpDigits(nextOtp);
-                                                    }
-                                                }
-                                            }}
-                                            className="h-12 w-12 rounded-none border border-[#E5E5E5] bg-[#F8F8F6] text-center text-xl font-bold text-[#1A1A1A] focus:border-[#1A1A1A] focus:bg-white focus:outline-none transition-colors"
-                                        />
-                                    ))}
-                                </div>
-
-                                {(otpErrorMessage || otpNotice) && (
-                                    <div className="mt-4 text-center min-h-[20px]">
-                                        {otpErrorMessage ? (
-                                            <p className="text-[10px] font-bold text-red-500 tracking-widest uppercase animate-pulse">{otpErrorMessage}</p>
-                                        ) : (
-                                            <p className="text-[10px] font-bold text-[#999999] tracking-widest uppercase">{otpNotice}</p>
-                                        )}
-                                    </div>
-                                )}
-
-                                <div className="mt-8 flex flex-col gap-3">
-                                    <button
-                                        onClick={() => handleVerifyOtp()}
-                                        disabled={isOtpVerifying || otpDigits.join("").length !== 4}
-                                        className="flex h-12 w-full items-center justify-center bg-[#1A1A1A] text-xs font-bold text-white tracking-widest uppercase transition-colors hover:bg-[#333] disabled:opacity-50"
-                                    >
-                                        {isOtpVerifying ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Verifying
-                                            </>
-                                        ) : (
-                                            "Confirm Code"
-                                        )}
-                                    </button>
-                                    
-                                    <div className="flex items-center justify-between mt-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowOtpModal(false)}
-                                            className="text-[10px] font-bold text-[#999999] hover:text-[#1A1A1A] tracking-widest uppercase transition-colors"
-                                        >
-                                            Cancel
-                                        </button>
-                                        
-                                        <button
-                                            type="button"
-                                            disabled={otpResendCooldown > 0 || isOtpSending}
-                                            onClick={() => requestOtp(formData.phone)}
-                                            className="text-[10px] font-bold text-[#1A1A1A] hover:opacity-70 tracking-widest uppercase disabled:text-[#999999] disabled:hover:opacity-100 transition-colors"
-                                        >
-                                            {otpResendCooldown > 0 
-                                                ? `Resend in ${otpResendCooldown}s` 
-                                                : "Resend Code"
-                                            }
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
             <Toaster position="top-center" toastOptions={{
                 style: {
                     borderRadius: '0',

@@ -53,11 +53,12 @@ export default function WishlistPage() {
 
               <Link href={`/product/${product.id}`} className="block">
                 <div className="relative aspect-[3/4] bg-[#F8F8F6]">
-                  {product.image_path || product.image ? (
+                  {product.image_paths?.[0] || product.image_path || product.image ? (
                     <Image
-                      src={product.image_path || product.image}
+                      src={product.image_paths?.[0] || product.image_path || product.image}
                       alt={product.name || "Product"}
                       fill
+                      unoptimized
                       className="object-cover"
                       sizes="(max-width: 768px) 50vw, 33vw"
                     />

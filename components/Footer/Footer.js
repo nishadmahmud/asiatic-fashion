@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export default function Footer() {
@@ -64,18 +63,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <div className="mb-6">
-              <div className="inline-flex bg-white rounded-md px-2 py-1">
-                <Image
-                  src="/asiatic_fashion_logo.png"
-                  alt="Asiatic Fashion Logo"
-                  width={160}
-                  height={40}
-                  unoptimized
-                  className="w-auto h-10 md:h-12 object-contain"
-                />
-              </div>
-            </div>
+            <Link href="/" className="inline-block mb-6">
+              <h1 className="text-xl md:text-2xl font-bold tracking-tighter text-white uppercase">
+                ASIATIC FASHION
+              </h1>
+            </Link>
             <p className="text-sm leading-relaxed text-gray-400 max-w-xs">
               Discover quality fashion that reflects your style and makes
               everyday enjoyable. Your trusted fashion destination since 2020.
