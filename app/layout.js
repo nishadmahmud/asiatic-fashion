@@ -1,7 +1,9 @@
 import { Inter, Playfair_Display } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { CartProvider } from "@/context/CartContext";
 import AuthDrawer from "@/components/AuthDrawer/AuthDrawer";
+import CartSidebar from "@/components/CartSidebar/CartSidebar";
 import "./globals.css";
 
 const inter = Inter({
@@ -29,8 +31,11 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           <WishlistProvider>
-            {children}
-            <AuthDrawer />
+            <CartProvider>
+              {children}
+              <AuthDrawer />
+              <CartSidebar />
+            </CartProvider>
           </WishlistProvider>
         </AuthProvider>
       </body>

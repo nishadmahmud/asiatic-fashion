@@ -9,6 +9,7 @@ import Footer from "@/components/Footer/Footer";
 import ProductCard from "@/components/ProductCard/ProductCard";
 import { getProductById, getRelatedProduct, getCampaigns } from "@/lib/api";
 import { transformProduct, buildCampaignDiscountMap } from "@/lib/transformProduct";
+import { useCart } from "@/context/CartContext";
 
 export default function ProductDetailsPage() {
   const params = useParams();
@@ -17,6 +18,8 @@ export default function ProductDetailsPage() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  
+  const { addToCart } = useCart();
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedLength, setSelectedLength] = useState(null);
@@ -221,9 +224,31 @@ export default function ProductDetailsPage() {
     );
   }
 
-  // Find child variants for selected size
-  const activeVariant = product.product_variants.find((v) => v.name === selectedSize);
+  const activeVariant = product.product_variants?.find((v) => v.name === selectedSize);
   const childVariants = activeVariant?.child_variants || [];
+  const activeChildVariant = childVariants.find((v) => v.name === selectedLength);
+
+  const handleAddToCart = () => {
+    if (product.product_variants?.length > 0 && !selectedSize) {
+      alert("Please select a size first.");
+      return;
+    }
+    
+    // We update the product object's price to the dynamic price so Cart uses the right price
+    const productToAdd = {
+      ...product,
+      price: getDisplayPrice(),
+    };
+
+    addToCart(
+      productToAdd,
+      1,
+      selectedSize,
+      null, // selectedColor
+      activeVariant?.id || null,
+      activeChildVariant?.id || null
+    );
+  };
 
   return (
     <>
@@ -398,6 +423,7 @@ export default function ProductDetailsPage() {
             <div className="flex flex-col gap-3 mb-10">
               <button
                 disabled={product.isOutOfStock}
+                onClick={handleAddToCart}
                 className="w-full bg-[#1A1A1A] text-white h-12 text-xs font-medium tracking-widest uppercase hover:bg-[#333333] transition-colors duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {product.isOutOfStock ? "Out of Stock" : "Add to Cart"}

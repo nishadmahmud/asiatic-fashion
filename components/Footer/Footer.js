@@ -1,22 +1,23 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   const quickLinks = [
-    { name: "New Arrivals", href: "#" },
-    { name: "Best Sellers", href: "#" },
-    { name: "Men's Collection", href: "#" },
-    { name: "Women's Collection", href: "#" },
-    { name: "Children's Wear", href: "#" },
+    { name: "Shop All", href: "/category/16167" },
+    { name: "Wishlist", href: "/wishlist" },
+    { name: "My Profile", href: "/profile" },
+    { name: "Best Sellers", href: "/#products" },
+    { name: "Brands", href: "/#brands" },
   ];
 
   const customerService = [
-    { name: "FAQs", href: "#" },
-    { name: "Shipping Info", href: "#" },
-    { name: "Returns & Exchange", href: "#" },
-    { name: "Track Order", href: "#" },
-    { name: "Contact Us", href: "#" },
+    { name: "FAQs", href: "/faq" },
+    { name: "Shipping Info", href: "/shipping" },
+    { name: "Returns & Exchange", href: "/returns" },
+    { name: "Track Order", href: "/track-order" },
+    { name: "Contact Us", href: "/contact" },
   ];
 
   const socials = [
@@ -103,12 +104,12 @@ export default function Footer() {
             <ul className="space-y-2.5">
               {quickLinks.map((link) => (
                 <li key={link.name}>
-                  <a
+                  <Link
                     href={link.href}
                     className="text-sm text-gray-400 hover:text-[#E8611A] transition-colors"
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -122,12 +123,12 @@ export default function Footer() {
             <ul className="space-y-2.5">
               {customerService.map((link) => (
                 <li key={link.name}>
-                  <a
+                  <Link
                     href={link.href}
                     className="text-sm text-gray-400 hover:text-[#E8611A] transition-colors"
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -202,12 +203,12 @@ export default function Footer() {
         <div className="w-full max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
           <p>© {currentYear} Asiatic Fashion. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-gray-300 transition-colors">
+            <Link href="/privacy-policy" className="hover:text-gray-300 transition-colors">
               Privacy Policy
-            </a>
-            <a href="#" className="hover:text-gray-300 transition-colors">
+            </Link>
+            <Link href="/terms-of-service" className="hover:text-gray-300 transition-colors">
               Terms of Service
-            </a>
+            </Link>
           </div>
         </div>
       </div>
