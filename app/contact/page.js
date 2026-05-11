@@ -43,8 +43,12 @@ export default function ContactPage() {
             <div className="space-y-12 md:mt-12">
               <div>
                 <h3 className="text-[10px] font-bold tracking-widest uppercase text-[#999999] mb-2">Customer Service</h3>
-                <p className="text-sm text-[#1A1A1A] font-medium">support@asiaticfashion.com</p>
-                <p className="text-sm text-[#1A1A1A] font-medium">+880 1234 567890</p>
+                <a href="mailto:info@asiaticfashion.com" className="text-sm text-[#1A1A1A] font-medium block hover:underline">
+                  info@asiaticfashion.com
+                </a>
+                <a href="tel:+8801311340039" className="text-sm text-[#1A1A1A] font-medium block hover:underline">
+                  01311340039
+                </a>
                 <p className="text-xs text-[#666666] mt-2">Available Mon-Fri, 9am - 6pm (BST)</p>
               </div>
 
@@ -52,9 +56,8 @@ export default function ContactPage() {
                 <h3 className="text-[10px] font-bold tracking-widest uppercase text-[#999999] mb-2">Headquarters</h3>
                 <p className="text-sm text-[#1A1A1A] leading-relaxed">
                   Asiatic Fashion Ltd.<br />
-                  123 Fashion Avenue<br />
-                  Banani, Dhaka 1213<br />
-                  Bangladesh
+                  House 21, Road 12, Sector 13, Uttara<br />
+                  Dhaka-1230, Bangladesh
                 </p>
               </div>
             </div>
