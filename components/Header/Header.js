@@ -22,6 +22,7 @@ export default function Header() {
   const { wishlist } = useWishlist();
   const { getCartCount, toggleCart } = useCart();
 
+
   // Fetch categories for navigation
   useEffect(() => {
     const fetchCategories = async () => {
@@ -36,7 +37,6 @@ export default function Header() {
     };
     fetchCategories();
   }, []);
-
   // Search handler with debounce
   useEffect(() => {
     let ignore = false;
@@ -113,15 +113,15 @@ export default function Header() {
           {/* Right Nav */}
           <div className="flex items-center gap-6">
             <nav className="hidden md:flex items-center gap-8 text-xs font-bold tracking-widest uppercase text-[#1A1A1A]">
-              <Link href={categories.length > 0 ? `/category/${categories[0].category_id}` : "/category/16167"} className="hover:text-[#999999] transition-colors">
-                Categories
+              <Link href="/track-order" className="hover:text-[#999999] transition-colors">
+                Track Order
               </Link>
-              <Link href="/category/16167" className="hover:text-[#999999] transition-colors">
-                New Product
+              <Link href="/#new-arrivals" className="hover:text-[#999999] transition-colors">
+                New Products
               </Link>
             </nav>
 
-            <div className="flex items-center gap-4 border-l border-[#E5E5E5] pl-6 ml-2">
+            <div className="flex items-center gap-4 md:border-l md:border-[#E5E5E5] md:pl-6 md:ml-2">
               {/* Search Icon */}
               <button
                 onClick={() => { setSearchOpen(!searchOpen); setSearchQuery(""); setSearchResults([]); }}
@@ -135,7 +135,7 @@ export default function Header() {
               </button>
 
               {/* Wishlist Icon */}
-              <Link href="/wishlist" className="hover:opacity-70 transition-opacity relative" aria-label="Wishlist">
+              <Link href="/wishlist" className="hidden md:flex hover:opacity-70 transition-opacity relative" aria-label="Wishlist">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="1.5">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
@@ -145,7 +145,7 @@ export default function Header() {
               </Link>
 
               {/* Cart Icon */}
-              <button onClick={toggleCart} className="hover:opacity-70 transition-opacity relative" aria-label="Cart">
+              <button onClick={toggleCart} className="hidden md:flex hover:opacity-70 transition-opacity relative" aria-label="Cart">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="1.5">
                   <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                   <line x1="3" y1="6" x2="21" y2="6" />
@@ -159,7 +159,7 @@ export default function Header() {
               {/* User Icon */}
               <button 
                 onClick={() => user ? router.push('/profile') : openAuthDrawer('login')}
-                className="hover:opacity-70 transition-opacity" 
+                className="hidden md:flex hover:opacity-70 transition-opacity" 
                 aria-label="User Account"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="1.5">
@@ -236,6 +236,8 @@ export default function Header() {
         )}
       </div>
 
+
+
       {/* Search Bar Dropdown */}
       {searchOpen && (
         <div className="absolute top-full left-0 w-full bg-white border-b border-[#E5E5E5] py-4 shadow-xl z-40">
@@ -305,41 +307,161 @@ export default function Header() {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
-          <div className="relative w-[85%] max-w-sm h-full bg-[#F8F8F6] shadow-2xl flex flex-col">
-            <div className="p-6 border-b border-[#E5E5E5] flex items-center justify-between">
-              <h2 className="text-sm font-bold tracking-widest uppercase">Menu</h2>
-              <button onClick={() => setMobileMenuOpen(false)}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="1.5">
+        <div className="fixed inset-0 z-[100] md:hidden flex">
+          <div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300" 
+            onClick={() => setMobileMenuOpen(false)} 
+          />
+          <div className="relative w-[85%] max-w-[320px] h-full bg-white shadow-2xl flex flex-col transform transition-transform duration-300">
+            {/* Drawer Header */}
+            <div className="p-5 border-b border-[#F0F0F0] flex items-center justify-between bg-white sticky top-0 z-10">
+              <h1 className="text-sm font-black tracking-tighter text-[#1A1A1A] uppercase">
+                ASIATIC FASHION
+              </h1>
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F8F8F6] transition-colors"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="1.5">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </button>
             </div>
-            <div className="p-6 flex flex-col gap-6 overflow-y-auto">
-              {categories.length > 0
-                ? categories.map((cat) => (
-                    <Link
-                      key={cat.category_id}
-                      href={`/category/${cat.category_id}`}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-sm font-bold tracking-widest uppercase text-[#1A1A1A]"
-                    >
-                      {cat.name}
-                    </Link>
-                  ))
-                : ["Men", "Children", "Brands"].map((cat) => (
-                    <Link
-                      key={cat}
-                      href="/category/16167"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-sm font-bold tracking-widest uppercase text-[#1A1A1A]"
-                    >
-                      {cat}
-                    </Link>
-                  ))
-              }
+
+            <div className="flex-1 overflow-y-auto bg-white">
+              {/* Auth Section */}
+              <div className="p-6 bg-[#F8F8F6] border-b border-[#F0F0F0]">
+                {user ? (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center text-lg font-bold">
+                        {user.name?.[0] || "U"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-[#1A1A1A] truncate">{user.name}</p>
+                        <p className="text-[10px] text-[#999999] truncate uppercase tracking-widest">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link 
+                        href="/profile" 
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center justify-center h-9 bg-white border border-[#E5E5E5] text-[10px] font-bold tracking-widest uppercase text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white transition-all"
+                      >
+                        Profile
+                      </Link>
+                      <button 
+                        onClick={() => { useAuth().logout(); setMobileMenuOpen(false); }}
+                        className="flex items-center justify-center h-9 bg-white border border-[#E5E5E5] text-[10px] font-bold tracking-widest uppercase text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-[10px] font-bold tracking-widest uppercase text-[#999999] mb-1">Account</p>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => { openAuthDrawer('login'); setMobileMenuOpen(false); }}
+                        className="flex-1 h-10 bg-[#1A1A1A] text-white text-[10px] font-bold tracking-widest uppercase transition-opacity hover:opacity-90"
+                      >
+                        Log In
+                      </button>
+                      <button 
+                        onClick={() => { openAuthDrawer('register'); setMobileMenuOpen(false); }}
+                        className="flex-1 h-10 border border-[#1A1A1A] text-[#1A1A1A] text-[10px] font-bold tracking-widest uppercase hover:bg-[#1A1A1A] hover:text-white transition-all"
+                      >
+                        Sign Up
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Categories */}
+              <div className="px-6 py-4">
+                <p className="text-[10px] font-bold tracking-widest uppercase text-[#999999] mb-4">Categories</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {categories.length > 0
+                    ? categories.map((cat) => (
+                        <Link
+                          key={cat.category_id}
+                          href={`/category/${cat.category_id}`}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center justify-between py-2.5 px-3 bg-[#F8F8F6] rounded-sm group hover:bg-[#1A1A1A] transition-colors"
+                        >
+                          <span className="text-[11px] font-bold tracking-widest uppercase text-[#1A1A1A] group-hover:text-white">{cat.name}</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#999999] group-hover:text-white"><path d="m9 18 6-6-6-6"/></svg>
+                        </Link>
+                      ))
+                    : ["Men", "Women", "Children"].map((cat) => (
+                        <Link
+                          key={cat}
+                          href="/category/16167"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center justify-between py-2.5 px-3 bg-[#F8F8F6] rounded-sm"
+                        >
+                          <span className="text-[11px] font-bold tracking-widest uppercase text-[#1A1A1A]">{cat}</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#999999" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                        </Link>
+                      ))
+                  }
+                </div>
+              </div>
+
+              {/* Main Navigation */}
+              <div className="px-6 py-4 border-t border-[#F0F0F0] space-y-1">
+                <p className="text-[10px] font-bold tracking-widest uppercase text-[#999999] mb-4">Shop & Explore</p>
+                <Link
+                  href="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between py-3 group"
+                >
+                  <span className="text-xs font-bold tracking-widest uppercase text-[#1A1A1A] group-hover:translate-x-1 transition-transform">Home</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                </Link>
+                <Link
+                  href="/track-order"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between py-3 group"
+                >
+                  <span className="text-xs font-bold tracking-widest uppercase text-[#1A1A1A] group-hover:translate-x-1 transition-transform">Track Order</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                </Link>
+                <Link
+                  href="/#new-arrivals"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between py-3 group"
+                >
+                  <span className="text-xs font-bold tracking-widest uppercase text-[#1A1A1A] group-hover:translate-x-1 transition-transform">New Arrivals</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                </Link>
+              </div>
+
+              {/* Company Info */}
+              <div className="px-6 py-6 bg-[#F8F8F6]/50 border-t border-[#F0F0F0]">
+                <p className="text-[10px] font-bold tracking-widest uppercase text-[#999999] mb-4">Company</p>
+                <div className="flex flex-col gap-4">
+                  <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-medium text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">Contact Us</Link>
+                  <Link href="/faq" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-medium text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">FAQs</Link>
+                  <Link href="/shipping" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-medium text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">Shipping & Delivery</Link>
+                  <Link href="/returns" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-medium text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">Returns & Exchanges</Link>
+                  <Link href="/privacy-policy" onClick={() => setMobileMenuOpen(false)} className="text-[11px] font-medium text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">Privacy Policy</Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-6 border-t border-[#F0F0F0] bg-white">
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#999999]">© 2024 ASIATIC</p>
+                <div className="flex gap-4">
+                  <a href="#" className="text-[#1A1A1A] hover:opacity-60 transition-opacity"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+                  <a href="#" className="text-[#1A1A1A] hover:opacity-60 transition-opacity"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg></a>
+                </div>
+              </div>
             </div>
           </div>
         </div>

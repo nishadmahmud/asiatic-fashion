@@ -47,7 +47,7 @@ export default function NewArrivals() {
   }, []);
 
   return (
-    <section className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-10 md:py-16">
+    <section id="new-arrivals" className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-10 md:py-16">
       <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#E5E5E5]">
         <h2 className="text-sm font-bold tracking-widest uppercase text-[#1A1A1A]">
           New Arrivals

@@ -4,6 +4,7 @@ import { WishlistProvider } from "@/context/WishlistContext";
 import { CartProvider } from "@/context/CartContext";
 import AuthDrawer from "@/components/AuthDrawer/AuthDrawer";
 import CartSidebar from "@/components/CartSidebar/CartSidebar";
+import MobileBottomNav from "@/components/MobileBottomNav/MobileBottomNav";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,13 +29,14 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-      <body>
+      <body className="pb-16 md:pb-0">
         <AuthProvider>
           <WishlistProvider>
             <CartProvider>
               {children}
               <AuthDrawer />
               <CartSidebar />
+              <MobileBottomNav />
             </CartProvider>
           </WishlistProvider>
         </AuthProvider>
