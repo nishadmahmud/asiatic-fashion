@@ -2,6 +2,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { CartProvider } from "@/context/CartContext";
+import { CategoriesProvider } from "@/context/CategoriesContext";
 import AuthDrawer from "@/components/AuthDrawer/AuthDrawer";
 import CartSidebar from "@/components/CartSidebar/CartSidebar";
 import MobileBottomNav from "@/components/MobileBottomNav/MobileBottomNav";
@@ -32,12 +33,14 @@ export default function RootLayout({ children }) {
       <body className="pb-16 md:pb-0">
         <AuthProvider>
           <WishlistProvider>
-            <CartProvider>
-              {children}
-              <AuthDrawer />
-              <CartSidebar />
-              <MobileBottomNav />
-            </CartProvider>
+            <CategoriesProvider>
+              <CartProvider>
+                {children}
+                <AuthDrawer />
+                <CartSidebar />
+                <MobileBottomNav />
+              </CartProvider>
+            </CategoriesProvider>
           </WishlistProvider>
         </AuthProvider>
       </body>

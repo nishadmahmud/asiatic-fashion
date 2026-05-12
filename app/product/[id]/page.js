@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
@@ -11,8 +11,17 @@ import { getProductById, getRelatedProduct, getCampaigns } from "@/lib/api";
 import { transformProduct, buildCampaignDiscountMap } from "@/lib/transformProduct";
 import { useCart } from "@/context/CartContext";
 
+function applyPriceSaleRule(mrp, saleRule) {
+  if (!mrp || mrp <= 0) return 0;
+  if (!saleRule || saleRule.kind === "none") return mrp;
+  if (saleRule.kind === "fixed") return Math.max(0, mrp - (Number(saleRule.value) || 0));
+  const pct = Number(saleRule.value) || 0;
+  return Math.max(0, Math.round(mrp * (1 - pct / 100)));
+}
+
 export default function ProductDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const productId = params.id;
 
   const [product, setProduct] = useState(null);
@@ -28,6 +37,10 @@ export default function ProductDetailsPage() {
 
   const toggleAccordion = (section) => {
     setOpenAccordions((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+  const isFixedDiscountType = (type) => {
+    const normalized = String(type || "").toLowerCase();
+    return normalized === "amount" || normalized === "fixed";
   };
 
   // Fetch product data
@@ -53,25 +66,35 @@ export default function ProductDetailsPage() {
 
           let finalPrice = mrp;
           let discountLabel = "";
+          /** So variant-level prices get the same fixed / percent discount as the base MRP. */
+          let saleRule = { kind: "none", value: 0 };
 
           // Campaign discount
           if (apiProduct.campaigns && apiProduct.campaigns.length > 0) {
             const campaign = apiProduct.campaigns[0];
             const discountType = String(campaign.discount_type || "amount").toLowerCase();
-            if (discountType === "amount") {
-              finalPrice = Math.max(0, mrp - campaign.discount);
+            if (isFixedDiscountType(discountType)) {
+              const amt = Number(campaign.discount) || 0;
+              saleRule = { kind: "fixed", value: amt };
+              finalPrice = Math.max(0, mrp - amt);
               discountLabel = `৳${campaign.discount} OFF`;
             } else {
-              finalPrice = Math.max(0, Math.round(mrp * (1 - campaign.discount / 100)));
+              const pct = Number(campaign.discount) || 0;
+              saleRule = { kind: "percent", value: pct };
+              finalPrice = Math.max(0, Math.round(mrp * (1 - pct / 100)));
               discountLabel = `${campaign.discount}% OFF`;
             }
           } else if (apiProduct.discount > 0) {
             const discountType = String(apiProduct.discount_type || "percentage").toLowerCase();
-            if (discountType === "amount") {
-              finalPrice = Math.max(0, mrp - apiProduct.discount);
+            if (isFixedDiscountType(discountType)) {
+              const amt = Number(apiProduct.discount) || 0;
+              saleRule = { kind: "fixed", value: amt };
+              finalPrice = Math.max(0, mrp - amt);
               discountLabel = `৳${apiProduct.discount} OFF`;
             } else {
-              finalPrice = Math.max(0, Math.round(mrp * (1 - apiProduct.discount / 100)));
+              const pct = Number(apiProduct.discount) || 0;
+              saleRule = { kind: "percent", value: pct };
+              finalPrice = Math.max(0, Math.round(mrp * (1 - pct / 100)));
               discountLabel = `${apiProduct.discount}% OFF`;
             }
           }
@@ -106,6 +129,7 @@ export default function ProductDetailsPage() {
             price: finalPrice,
             discount: apiProduct.discount || 0,
             discountLabel,
+            saleRule,
             image_paths: images,
             color: [apiProduct.color || "Default"],
             color_code: apiProduct.color_code || "#1A1A1A",
@@ -176,8 +200,8 @@ export default function ProductDetailsPage() {
     fetchRelated();
   }, [productId, loading]);
 
-  // Dynamic price based on variant selection
-  const getDisplayPrice = () => {
+  // MRP for selected variant (or product base); discount applied in getDisplayPrice via saleRule
+  const getVariantMrp = () => {
     if (!product) return 0;
     if (selectedSize && product.variants?.[selectedSize]) {
       const variant = product.variants[selectedSize];
@@ -186,12 +210,23 @@ export default function ProductDetailsPage() {
         const child = variant.children.find((c) => c.name === selectedLength);
         if (child) target = child;
       }
-      const vPrice = target.price ? parseFloat(target.price) : 0;
+      const vPrice = target.price != null ? parseFloat(target.price) : 0;
       if (vPrice > 0) return vPrice;
     }
-    return product.price;
+    return Number(product.retails_price) || 0;
   };
 
+  const getDisplayPrice = () => {
+    if (!product) return 0;
+    const mrp = getVariantMrp();
+    const rule = product.saleRule || { kind: "none", value: 0 };
+    if (!rule || rule.kind === "none") {
+      return mrp > 0 ? mrp : product.price;
+    }
+    return applyPriceSaleRule(mrp, rule);
+  };
+
+  const displayMrp = product ? getVariantMrp() : 0;
   const displayPrice = getDisplayPrice();
 
   const scrollToImage = (index) => {
@@ -347,9 +382,9 @@ export default function ProductDetailsPage() {
                 <span className="text-xl sm:text-2xl font-medium text-[#1A1A1A]">
                   ৳{displayPrice.toLocaleString()}
                 </span>
-                {product.retails_price > displayPrice && (
+                {displayMrp > displayPrice && (
                   <span className="text-base text-[#999999] line-through font-normal">
-                    ৳{product.retails_price.toLocaleString()}
+                    ৳{displayMrp.toLocaleString()}
                   </span>
                 )}
                 {product.discountLabel && (

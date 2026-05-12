@@ -6,15 +6,9 @@ import ProductCard from "@/components/ProductCard/ProductCard";
 import { getBestDeals, getCampaigns } from "@/lib/api";
 import { transformProduct, buildCampaignDiscountMap } from "@/lib/transformProduct";
 
-const dummyProducts = [
-  { id: 1, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
-  { id: 2, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
-  { id: 3, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1594938298596-af014bd07b98?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
-  { id: 4, name: "Loading...", brand: "—", price: 0, image: "https://images.unsplash.com/photo-1593998066526-65fcab3021a2?auto=format&fit=crop&q=80&w=800", colors: ["#E5E5E5"] },
-];
-
 export default function BestDeals() {
-  const [products, setProducts] = useState(dummyProducts);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -48,6 +42,8 @@ export default function BestDeals() {
         }
       } catch (error) {
         console.error("Error fetching best deals:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchProducts();
@@ -68,9 +64,15 @@ export default function BestDeals() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
+        {loading && products.length === 0
+          ? Array.from({ length: 4 }).map((_, idx) => (
+              <div key={`best-deals-skeleton-${idx}`} className="w-full">
+                <div className="w-full aspect-[3/4] bg-white animate-pulse mb-4" />
+                <div className="h-3 bg-white animate-pulse w-2/3 mb-2" />
+                <div className="h-4 bg-white animate-pulse w-1/3" />
+              </div>
+            ))
+          : products.map((product) => <ProductCard key={product.id} product={product} />)}
       </div>
     </section>
   );

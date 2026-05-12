@@ -4,39 +4,30 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getCategoriesFromServer, searchProducts } from "@/lib/api";
+import { searchProducts } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
+import { useCategories } from "@/context/CategoriesContext";
+import CategoryNavBar from "@/components/CategoryNavBar/CategoryNavBar";
 
-export default function Header() {
+export default function Header({ initialCategories = [] }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [activeMegaMenu, setActiveMegaMenu] = useState(null);
   const router = useRouter();
   const { user, openAuthDrawer } = useAuth();
   const { wishlist } = useWishlist();
   const { getCartCount, toggleCart } = useCart();
+  const { categories, seedCategories } = useCategories();
 
 
   // Fetch categories for navigation
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await getCategoriesFromServer();
-        if (response.success && response.data) {
-          setCategories(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      }
-    };
-    fetchCategories();
-  }, []);
+    seedCategories(initialCategories);
+  }, [initialCategories, seedCategories]);
   // Search handler with debounce
   useEffect(() => {
     let ignore = false;
@@ -172,70 +163,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Sub Navigation (Categories Row) - Dynamic */}
-      <div 
-        className="hidden md:flex border-t border-[#E5E5E5] bg-[#F8F8F6] relative"
-        onMouseLeave={() => setActiveMegaMenu(null)}
-      >
-        <div className="w-full max-w-[1600px] mx-auto px-4 md:px-12 flex items-center justify-center gap-10 h-10 overflow-x-auto">
-          {categories.length > 0
-            ? categories.map((cat) => (
-                <div 
-                  key={cat.category_id} 
-                  className="h-full flex items-center"
-                  onMouseEnter={() => setActiveMegaMenu(cat.category_id)}
-                >
-                  <Link href={`/category/${cat.category_id}`}>
-                    <button className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors whitespace-nowrap h-full flex items-center">
-                      {cat.name}
-                    </button>
-                  </Link>
-                </div>
-              ))
-            : ["Men", "Children", "Brands"].map((cat) => (
-                <Link key={cat} href="/category/16167">
-                  <button className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors h-full flex items-center">
-                    {cat}
-                  </button>
-                </Link>
-              ))
-          }
-        </div>
-
-        {/* Mega Menu Dropdown */}
-        {activeMegaMenu && categories.find(c => c.category_id === activeMegaMenu)?.sub_category?.length > 0 && (
-          <div className="absolute top-full left-0 w-full bg-[#1A1A1A] shadow-2xl z-[100] border-t border-[#333]">
-            <div className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-12 flex justify-center gap-16 xl:gap-24">
-              {categories.find(c => c.category_id === activeMegaMenu).sub_category.map((sub) => (
-                <div key={sub.id} className="flex flex-col min-w-[140px]">
-                  <Link 
-                    href={`/category/${activeMegaMenu}?subcategory=${sub.id}`}
-                    onClick={() => setActiveMegaMenu(null)}
-                    className="text-[10px] font-bold tracking-widest uppercase text-white mb-6 hover:text-[#E5E5E5] transition-colors"
-                  >
-                    {sub.name}
-                  </Link>
-                  {sub.child_categories && sub.child_categories.length > 0 && (
-                    <div className="flex flex-col gap-3">
-                      {sub.child_categories.map((child) => (
-                        <Link
-                          key={child.id}
-                          href={`/category/${activeMegaMenu}?child=${child.id}`}
-                          onClick={() => setActiveMegaMenu(null)}
-                          className="text-[11px] text-[#999999] hover:text-white transition-colors"
-                        >
-                          {child.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
+      <CategoryNavBar categories={categories} variant="header" />
 
 
       {/* Search Bar Dropdown */}
@@ -384,8 +312,7 @@ export default function Header() {
               <div className="px-6 py-4">
                 <p className="text-[10px] font-bold tracking-widest uppercase text-[#999999] mb-4">Categories</p>
                 <div className="grid grid-cols-1 gap-2">
-                  {categories.length > 0
-                    ? categories.map((cat) => (
+                  {categories.map((cat) => (
                         <Link
                           key={cat.category_id}
                           href={`/category/${cat.category_id}`}
@@ -395,19 +322,7 @@ export default function Header() {
                           <span className="text-[11px] font-bold tracking-widest uppercase text-[#1A1A1A] group-hover:text-white">{cat.name}</span>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#999999] group-hover:text-white"><path d="m9 18 6-6-6-6"/></svg>
                         </Link>
-                      ))
-                    : ["Men", "Women", "Children"].map((cat) => (
-                        <Link
-                          key={cat}
-                          href="/category/16167"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center justify-between py-2.5 px-3 bg-[#F8F8F6] rounded-sm"
-                        >
-                          <span className="text-[11px] font-bold tracking-widest uppercase text-[#1A1A1A]">{cat}</span>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#999999" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-                        </Link>
-                      ))
-                  }
+                      ))}
                 </div>
               </div>
 

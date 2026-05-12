@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import ProductCard from "@/components/ProductCard/ProductCard";
@@ -27,7 +28,10 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
   const [categoryName, setCategoryName] = useState("");
   const [subcategoryName, setSubcategoryName] = useState("");
+  const [childCategoryName, setChildCategoryName] = useState("");
   const [bannerImage, setBannerImage] = useState(null);
+  const [subcategories, setSubcategories] = useState([]);
+  const [mobileListView, setMobileListView] = useState(false);
   const [sortBy, setSortBy] = useState("recommended");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,6 +70,9 @@ export default function CategoryPage() {
           if (category) {
             setCategoryName(category.name);
             setBannerImage(category.banner || null);
+            setSubcategories(
+              Array.isArray(category.sub_category) ? category.sub_category : []
+            );
 
             if (subcategoryId && category.sub_category) {
               const subcat = category.sub_category.find(
@@ -74,6 +81,22 @@ export default function CategoryPage() {
               if (subcat) {
                 setSubcategoryName(subcat.name);
                 if (subcat.banner) setBannerImage(subcat.banner);
+              } else {
+                setSubcategoryName("");
+              }
+            } else {
+              setSubcategoryName("");
+            }
+
+            setChildCategoryName("");
+            if (childId && category.sub_category) {
+              for (const sub of category.sub_category) {
+                const children = Array.isArray(sub.child_categories) ? sub.child_categories : [];
+                const ch = children.find((c) => String(c.id) === String(childId));
+                if (ch) {
+                  setChildCategoryName(ch.name);
+                  break;
+                }
               }
             }
           }
@@ -83,7 +106,11 @@ export default function CategoryPage() {
       }
     };
     if (categoryId) fetchCategoryData();
-  }, [categoryId, subcategoryId]);
+  }, [categoryId, subcategoryId, childId]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categoryId, subcategoryId, childId]);
 
   // Fetch products
   useEffect(() => {
@@ -228,21 +255,36 @@ export default function CategoryPage() {
 
   const activeFilterCount = selectedSizes.length + selectedColors.length + selectedBrands.length;
 
+  const activeSubcategory = useMemo(
+    () => subcategories.find((s) => String(s.id) === String(subcategoryId)),
+    [subcategories, subcategoryId]
+  );
+
+  const pillChildCategories = useMemo(() => {
+    if (!activeSubcategory) return [];
+    const ch = activeSubcategory.child_categories;
+    return Array.isArray(ch) ? ch : [];
+  }, [activeSubcategory]);
+
+  /** After picking a subcategory, top row shows its children (not the sub list). */
+  const showChildPills = Boolean(subcategoryId && pillChildCategories.length > 0);
+
   const toggleFilter = (key) => setExpandedFilters((prev) => ({ ...prev, [key]: !prev[key] }));
   const toggleCheckbox = (value, selected, setter) => {
     setter((prev) => prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]);
   };
   const clearAllFilters = () => { setSelectedSizes([]); setSelectedColors([]); setSelectedBrands([]); setPriceMin(filterOptions.priceMin); setPriceMax(filterOptions.priceMax); setShowOutOfStock(true); };
 
-  const displayName = subcategoryName || categoryName || "Collection";
+  const displayName =
+    childCategoryName || subcategoryName || categoryName || "Collection";
 
   return (
     <>
       <Header />
 
       <main className="w-full bg-white relative">
-        {/* Hero Banner */}
-        <div className="relative w-full h-[50vh] md:h-[60vh] bg-[#F8F8F6]">
+        {/* Hero Banner — desktop only */}
+        <div className="hidden md:block relative w-full h-[60vh] bg-[#F8F8F6]">
           {bannerImage ? (
             <Image
               src={bannerImage}
@@ -259,16 +301,145 @@ export default function CategoryPage() {
           )}
         </div>
 
-        {/* Sub Header Bar */}
-        <div className="w-full border-b border-[#E5E5E5]">
+        {/* Mobile: subcategories + title + filter / layout (no banner) */}
+        <div className="md:hidden border-b border-[#E5E5E5] bg-white">
+          {subcategories.length > 0 && (
+            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-1 px-2 pt-4 pb-3">
+              <div className="flex justify-center">
+                {subcategoryId ? (
+                  <Link
+                    href={
+                      childId
+                        ? `/category/${categoryId}?subcategory=${subcategoryId}`
+                        : `/category/${categoryId}`
+                    }
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#F8F8F6] transition-colors"
+                    aria-label={childId ? "Back to subcategory" : "Back to all subcategories"}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                      <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                  </Link>
+                ) : null}
+              </div>
+              <div className="flex min-w-0 flex-wrap justify-center gap-2">
+                {showChildPills
+                  ? pillChildCategories.map((child) => {
+                      const active = String(childId) === String(child.id);
+                      return (
+                        <Link
+                          key={child.id}
+                          href={`/category/${categoryId}?subcategory=${subcategoryId}&child=${child.id}`}
+                          className={`shrink-0 rounded-sm border px-3 py-2.5 text-[10px] font-bold tracking-[0.15em] uppercase transition-colors ${
+                            active
+                              ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
+                              : "border-[#1A1A1A] text-[#1A1A1A] bg-white hover:bg-[#F8F8F6]"
+                          }`}
+                        >
+                          {child.name}
+                        </Link>
+                      );
+                    })
+                  : subcategories.map((sub) => {
+                      const active = String(subcategoryId) === String(sub.id);
+                      return (
+                        <Link
+                          key={sub.id}
+                          href={`/category/${categoryId}?subcategory=${sub.id}`}
+                          className={`shrink-0 rounded-sm border px-3 py-2.5 text-[10px] font-bold tracking-[0.15em] uppercase transition-colors ${
+                            active
+                              ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
+                              : "border-[#1A1A1A] text-[#1A1A1A] bg-white hover:bg-[#F8F8F6]"
+                          }`}
+                        >
+                          {sub.name}
+                        </Link>
+                      );
+                    })}
+              </div>
+              <div aria-hidden className="w-9 shrink-0" />
+            </div>
+          )}
+          <h1 className="text-center text-lg font-bold text-[#1A1A1A] tracking-tight px-4 pb-3 capitalize">
+            {displayName}
+          </h1>
+          <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center border-t border-[#E5E5E5] px-2 py-2.5 text-[#1A1A1A]">
+            <div className="flex min-w-0 justify-start">
+              <button
+                type="button"
+                onClick={() => setIsFilterOpen(true)}
+                className="flex shrink-0 items-center gap-1 py-1.5 pl-0.5 pr-0.5 text-[10px] font-bold uppercase tracking-wide hover:opacity-70 transition-opacity"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <line x1="4" y1="21" x2="4" y2="14"></line>
+                  <line x1="4" y1="10" x2="4" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12" y2="3"></line>
+                  <line x1="20" y1="21" x2="20" y2="16"></line>
+                  <line x1="20" y1="12" x2="20" y2="3"></line>
+                  <line x1="1" y1="14" x2="7" y2="14"></line>
+                  <line x1="9" y1="8" x2="15" y2="8"></line>
+                  <line x1="17" y1="16" x2="23" y2="16"></line>
+                </svg>
+                Filter
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <label htmlFor="mobile-category-sort" className="sr-only">
+                Sort products
+              </label>
+              <select
+                id="mobile-category-sort"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="h-9 w-[118px] shrink-0 border border-[#1A1A1A] bg-white px-1 text-[10px] font-bold uppercase tracking-wide text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#1A1A1A]/30"
+              >
+                <option value="recommended">Recommended</option>
+                <option value="price-low">Price, low to high</option>
+                <option value="price-high">Price, high to low</option>
+                <option value="newest">Newest</option>
+              </select>
+            </div>
+            <div className="flex min-w-0 justify-end">
+              <div className="flex shrink-0 items-center overflow-hidden rounded-sm border border-[#1A1A1A]">
+                <button
+                  type="button"
+                  aria-label="Two column grid"
+                  onClick={() => setMobileListView(false)}
+                  className={`p-2 ${!mobileListView ? "bg-[#1A1A1A] text-white" : "bg-white text-[#1A1A1A]"}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="3" y="3" width="7" height="7" rx="0.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="0.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="0.5" />
+                    <rect x="14" y="14" width="7" height="7" rx="0.5" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Single column list"
+                  onClick={() => setMobileListView(true)}
+                  className={`p-2 border-l border-[#1A1A1A] ${mobileListView ? "bg-[#1A1A1A] text-white" : "bg-white text-[#1A1A1A]"}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="6" y="5" width="12" height="14" rx="0.5" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sub Header Bar — desktop */}
+        <div className="hidden md:block w-full border-b border-[#E5E5E5]">
           <div className="max-w-[1600px] mx-auto px-4 md:px-12 py-4 flex items-center justify-between text-xs font-bold tracking-widest uppercase text-[#1A1A1A]">
             <span>SS.26</span>
             <span>{displayName}</span>
           </div>
         </div>
 
-        {/* Collection Title & Filter Bar */}
-        <div className="max-w-[1600px] mx-auto px-4 md:px-12">
+        {/* Collection Title & Filter Bar — desktop */}
+        <div className="hidden md:block max-w-[1600px] mx-auto px-4 md:px-12">
           <div className="flex items-center justify-between pb-6 text-xs text-[#1A1A1A] font-medium border-b border-[#E5E5E5] sticky top-[112px] bg-white z-10 pt-4 mt-6">
             <button
               onClick={() => setIsFilterOpen(true)}
@@ -304,7 +475,13 @@ export default function CategoryPage() {
         {/* Product Grid */}
         <div className="max-w-[1600px] mx-auto px-4 md:px-12 py-10">
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16">
+            <div
+              className={`grid gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16 ${
+                mobileListView
+                  ? "grid-cols-1 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
+                  : "grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
+              }`}
+            >
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="animate-pulse">
                   <div className="aspect-[3/4] bg-[#F8F8F6] mb-4"></div>
@@ -315,7 +492,13 @@ export default function CategoryPage() {
               ))}
             </div>
           ) : sortedProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16">
+            <div
+              className={`grid gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16 ${
+                mobileListView
+                  ? "grid-cols-1 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
+                  : "grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
+              }`}
+            >
               {sortedProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

@@ -6,6 +6,10 @@ import Link from "next/link";
 import { getCampaigns } from "@/lib/api";
 
 export default function FlashSale() {
+  const isFixedDiscountType = (type) => {
+    const normalized = String(type || "").toLowerCase();
+    return normalized === "amount" || normalized === "fixed";
+  };
   const [campaign, setCampaign] = useState(null);
   const [saleProducts, setSaleProducts] = useState([]);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -33,7 +37,7 @@ export default function FlashSale() {
                 seconds: Math.floor((diff % (1000 * 60)) / 1000),
               });
             } else {
-              setTimeLeft({ hours: 12, minutes: 45, seconds: 30 });
+              setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
             }
 
             // Transform campaign products
@@ -45,7 +49,7 @@ export default function FlashSale() {
               const discountValue = Number(p?.pivot?.discount ?? cam.discount ?? 0);
               let finalPrice = mrp;
 
-              if (discountType === "amount") {
+              if (isFixedDiscountType(discountType)) {
                 finalPrice = Math.max(0, mrp - discountValue);
               } else {
                 finalPrice = Math.max(0, Math.round(mrp * (1 - discountValue / 100)));
@@ -104,7 +108,7 @@ export default function FlashSale() {
 
   const campaignTitle = campaign?.title || "Private Sale";
   const discountText = campaign?.discount
-    ? `Up to ${campaign.discount}${campaign.discount_type === "amount" ? "৳" : "%"} Off`
+    ? `Up to ${campaign.discount}${isFixedDiscountType(campaign.discount_type) ? "৳" : "%"} Off`
     : "Up to 50% Off";
 
   return (

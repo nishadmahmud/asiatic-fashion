@@ -36,12 +36,12 @@ export default function Newsletter() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="YOUR EMAIL ADDRESS"
               required
-              className="flex-1 h-12 px-5 text-xs tracking-widest bg-white text-[#1A1A1A] placeholder-[#999999] focus:outline-none"
+              className="flex-1 min-h-14 w-full px-5 py-3.5 text-sm tracking-widest bg-white text-[#1A1A1A] placeholder-[#999999] focus:outline-none sm:min-h-12 sm:py-0 sm:text-xs"
               id="newsletter-email"
             />
             <button
               type="submit"
-              className="w-full sm:w-auto px-8 h-12 bg-[#1A1A1A] hover:bg-[#333333] text-white text-xs font-bold tracking-widest uppercase transition-colors duration-300 border-l border-[#1A1A1A]"
+              className="flex w-full min-h-14 items-center justify-center px-8 py-3.5 text-sm font-bold tracking-widest text-white uppercase transition-colors duration-300 sm:w-auto sm:min-h-12 sm:py-0 sm:text-xs bg-[#1A1A1A] hover:bg-[#333333] border-t border-[#1A1A1A] sm:border-t-0 sm:border-l sm:border-[#1A1A1A]"
               id="newsletter-submit"
             >
               {submitted ? "Subscribed" : "Subscribe"}

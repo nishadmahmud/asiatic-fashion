@@ -5,21 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { getBannerFromServer } from "@/lib/api";
 
-const dummyCards = [
-  {
-    id: 1,
-    title: "The Signature Collection",
-    image: "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&q=80&w=1200",
-  },
-  {
-    id: 2,
-    title: "Summer Essentials",
-    image: "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&q=80&w=1200",
-  },
-];
-
 export default function PromoCards() {
-  const [cards, setCards] = useState(dummyCards);
+  const [cards, setCards] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchBanners = async () => {
@@ -40,10 +28,26 @@ export default function PromoCards() {
         }
       } catch (error) {
         console.error("Error fetching banners:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchBanners();
   }, []);
+
+  if (loading && cards.length === 0) {
+    return (
+      <section className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-10" id="promo-section">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          {Array.from({ length: 2 }).map((_, idx) => (
+            <div key={`promo-skeleton-${idx}`} className="relative w-full aspect-video bg-[#F8F8F6] animate-pulse" />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (cards.length === 0) return null;
 
   return (
     <section className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-10" id="promo-section">
@@ -51,7 +55,7 @@ export default function PromoCards() {
         {cards.map((card, index) => (
           <div
             key={card.id}
-            className="relative w-full h-[200px] md:h-[250px] lg:h-[300px] bg-[#F8F8F6] overflow-hidden group"
+            className="relative w-full aspect-video bg-[#F8F8F6] overflow-hidden group"
           >
             <Image
               src={card.image}

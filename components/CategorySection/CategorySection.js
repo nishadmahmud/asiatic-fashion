@@ -1,21 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getCategoriesFromServer } from "@/lib/api";
 
-const dummyCategories = [
-  { id: 16167, name: "T-Shirts", image: null },
-  { id: 16168, name: "Jeans", image: null },
-  { id: 16169, name: "Jackets", image: null },
-  { id: 16170, name: "Shoes", image: null },
-];
-
-export default function CategorySection() {
-  const [categories, setCategories] = useState(dummyCategories);
+export default function CategorySection({ initialCategories = [] }) {
+  const normalizedInitial = useMemo(
+    () =>
+      Array.isArray(initialCategories)
+        ? initialCategories.map((cat) => ({
+            id: cat.category_id,
+            name: cat.name,
+            image: cat.image || null,
+            subcategories: cat.sub_category || [],
+          }))
+        : [],
+    [initialCategories]
+  );
+  const [categories, setCategories] = useState(normalizedInitial);
+  const [loading, setLoading] = useState(normalizedInitial.length === 0);
 
   useEffect(() => {
+    if (normalizedInitial.length > 0) {
+      setCategories(normalizedInitial);
+      setLoading(false);
+      return;
+    }
+
     const fetchCategories = async () => {
       try {
         const response = await getCategoriesFromServer();
@@ -30,10 +42,12 @@ export default function CategorySection() {
         }
       } catch (error) {
         console.error("Error fetching categories:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchCategories();
-  }, []);
+  }, [normalizedInitial]);
 
   return (
     <section className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-10 md:py-16">
@@ -50,7 +64,14 @@ export default function CategorySection() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
-        {categories.map((cat) => (
+        {loading && categories.length === 0
+          ? Array.from({ length: 6 }).map((_, idx) => (
+              <div key={`cat-skeleton-${idx}`}>
+                <div className="w-full aspect-square bg-[#F8F8F6] animate-pulse mb-3" />
+                <div className="h-3 bg-[#F8F8F6] animate-pulse w-2/3 mx-auto" />
+              </div>
+            ))
+          : categories.map((cat) => (
           <Link key={cat.id} href={`/category/${cat.id}`} className="group">
             <div className="relative w-full aspect-square bg-[#F8F8F6] overflow-hidden mb-3">
               {cat.image ? (

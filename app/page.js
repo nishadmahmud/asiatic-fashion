@@ -1,7 +1,6 @@
 import Header from "@/components/Header/Header";
 import HeroBanner from "@/components/HeroBanner/HeroBanner";
 import PromoCards from "@/components/PromoCards/PromoCards";
-import CategorySection from "@/components/CategorySection/CategorySection";
 import NewArrivals from "@/components/NewArrivals/NewArrivals";
 import PopularProducts from "@/components/PopularProducts/PopularProducts";
 import BestDeals from "@/components/BestDeals/BestDeals";
@@ -9,16 +8,27 @@ import FlashSale from "@/components/FlashSale/FlashSale";
 import BrandsSection from "@/components/BrandsSection/BrandsSection";
 import Newsletter from "@/components/Newsletter/Newsletter";
 import Footer from "@/components/Footer/Footer";
+import { getCategoriesFromServer } from "@/lib/api";
 
-export default function Home() {
+export default async function Home() {
+  let initialCategories = [];
+  try {
+    const response = await getCategoriesFromServer();
+    if (response?.success && Array.isArray(response?.data)) {
+      initialCategories = response.data;
+    }
+  } catch (error) {
+    // Keep homepage usable even if category API fails.
+    initialCategories = [];
+  }
+
   return (
     <>
-      <Header />
+      <Header initialCategories={initialCategories} />
       <main>
-        <HeroBanner />
+        <HeroBanner initialCategories={initialCategories} attachCategoryNav />
         <BrandsSection />
         <PromoCards />
-        <CategorySection />
         <NewArrivals />
         <PopularProducts />
         <BestDeals />
