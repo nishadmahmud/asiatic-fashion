@@ -6,6 +6,7 @@ import Image from "next/image";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import SizeChartModal from "@/components/SizeChartModal";
+import ProductImageLightbox from "@/components/ProductImageLightbox";
 
 import ProductCard from "@/components/ProductCard/ProductCard";
 import { getProductById, getRelatedProduct, getCampaigns } from "@/lib/api";
@@ -39,9 +40,10 @@ export default function ProductDetailsPage() {
     specs: false,
     additionalInfo: false,
   });
-  const [isSizeDropdownOpen, setIsSizeDropdownOpen] = useState(false);
   const [currentMobileImage, setCurrentMobileImage] = useState(0);
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const toggleAccordion = (section) => {
     setOpenAccordions((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -287,10 +289,6 @@ export default function ProductDetailsPage() {
   const displayMrp = product ? getVariantMrp() : 0;
   const displayPrice = getDisplayPrice();
 
-  const scrollToImage = (index) => {
-    const element = document.getElementById(`product-image-${index}`);
-    if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
   const totalImages = Array.isArray(product?.image_paths) ? product.image_paths.length : 0;
   const hasMultipleImages = totalImages > 1;
   const goPrevMobileImage = () => {
@@ -298,6 +296,17 @@ export default function ProductDetailsPage() {
   };
   const goNextMobileImage = () => {
     setCurrentMobileImage((prev) => (prev === totalImages - 1 ? 0 : prev + 1));
+  };
+
+  const openLightbox = (index) => {
+    const i = Math.max(0, Math.min(index, totalImages > 0 ? totalImages - 1 : 0));
+    setLightboxIndex(i);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setCurrentMobileImage(lightboxIndex);
+    setLightboxOpen(false);
   };
 
   // Loading skeleton
@@ -401,7 +410,8 @@ export default function ProductDetailsPage() {
               {product.image_paths.map((img, index) => (
                 <button
                   key={index}
-                  onClick={() => scrollToImage(index)}
+                  type="button"
+                  onClick={() => openLightbox(index)}
                   className="relative w-full aspect-[3/4] shrink-0 border border-transparent hover:border-[#1A1A1A] transition-all duration-300"
                 >
                   <Image src={img} alt={`Thumbnail ${index + 1}`} fill unoptimized className="object-cover" />
@@ -413,17 +423,22 @@ export default function ProductDetailsPage() {
             <div className="flex-1 flex flex-col gap-4 md:gap-8 w-full">
               {/* Mobile carousel */}
               <div className="relative md:hidden w-full pb-4">
-                <div className="relative w-full aspect-[3/4] bg-[#F8F8F6]">
+                <button
+                  type="button"
+                  onClick={() => openLightbox(currentMobileImage)}
+                  className="relative block w-full cursor-zoom-in text-left aspect-[3/4] bg-[#F8F8F6]"
+                  aria-label="View image full screen"
+                >
                   <Image
                     src={product.image_paths[currentMobileImage]}
                     alt={`${product.name} - Image ${currentMobileImage + 1}`}
                     fill
                     priority={currentMobileImage === 0}
                     unoptimized
-                    className="object-contain object-center"
+                    className="object-contain object-center pointer-events-none"
                     sizes="100vw"
                   />
-                </div>
+                </button>
                 {hasMultipleImages && (
                   <>
                     <button
@@ -453,9 +468,24 @@ export default function ProductDetailsPage() {
               {/* Desktop vertical stacked images */}
               <div className="hidden md:flex flex-col gap-8 w-full">
                 {product.image_paths.map((img, index) => (
-                  <div key={index} id={`product-image-${index}`} className="relative w-full aspect-[3/4] bg-[#F8F8F6] scroll-mt-[130px]">
-                    <Image src={img} alt={`${product.name} - Image ${index + 1}`} fill priority={index === 0} unoptimized className="object-contain object-center" sizes="(max-width: 1024px) 100vw, 65vw" />
-                  </div>
+                  <button
+                    key={index}
+                    type="button"
+                    id={`product-image-${index}`}
+                    onClick={() => openLightbox(index)}
+                    className="relative block w-full cursor-zoom-in text-left aspect-[3/4] bg-[#F8F8F6] scroll-mt-[130px]"
+                    aria-label={`View image ${index + 1} full screen`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`${product.name} - Image ${index + 1}`}
+                      fill
+                      priority={index === 0}
+                      unoptimized
+                      className="object-contain object-center pointer-events-none"
+                      sizes="(max-width: 1024px) 100vw, 65vw"
+                    />
+                  </button>
                 ))}
               </div>
             </div>
@@ -504,54 +534,80 @@ export default function ProductDetailsPage() {
             </div>
 
             {/* Size */}
-            {product.product_variants.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm text-[#1A1A1A]">Size</h4>
-                  <button
-                    type="button"
-                    onClick={() => setIsSizeChartOpen(true)}
-                    className="text-xs text-[#1A1A1A] underline underline-offset-4 hover:text-[#6B6B6B] transition-colors"
-                  >
-                    Size Guide
-                  </button>
-                </div>
+            {product.product_variants.length > 0 && (() => {
+              const selectedVariantForSize = product.product_variants.find(
+                (v) => v.name === selectedSize
+              );
+              const selectedChildForSize =
+                selectedVariantForSize?.child_variants?.find(
+                  (c) => c.name === selectedLength
+                );
+              const availableQty = selectedChildForSize
+                ? Number(selectedChildForSize.quantity) || 0
+                : Number(selectedVariantForSize?.quantity) || 0;
 
-                <div className="relative">
-                  <button
-                    onClick={() => setIsSizeDropdownOpen(!isSizeDropdownOpen)}
-                    className="w-full h-12 border border-[#E5E5E5] px-4 text-sm text-[#1A1A1A] bg-transparent flex items-center justify-between hover:border-[#1A1A1A] transition-colors"
-                  >
-                    <span>{selectedSize || "Select a size"}</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform duration-300 ${isSizeDropdownOpen ? "rotate-180" : ""}`}>
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </button>
+              return (
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm text-[#1A1A1A]">
+                      {selectedSize ? (
+                        <>
+                          Size: <span className="text-[#6B6B6B]">{selectedSize}</span>
+                          {availableQty > 0 && (
+                            <span className="ml-2 text-xs text-[#6B6B6B]">
+                              ({availableQty} available)
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        "Select Size"
+                      )}
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setIsSizeChartOpen(true)}
+                      className="text-xs text-[#1A1A1A] underline underline-offset-4 hover:text-[#6B6B6B] transition-colors"
+                    >
+                      Size Guide
+                    </button>
+                  </div>
 
-                  {isSizeDropdownOpen && (
-                    <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#1A1A1A] shadow-xl z-20 max-h-60 overflow-y-auto">
-                      {product.product_variants.map((variant) => (
+                  <div className="flex flex-wrap gap-2">
+                    {product.product_variants.map((variant) => {
+                      const isSelected = selectedSize === variant.name;
+                      const isUnavailable = variant.quantity <= 0;
+                      return (
                         <button
                           key={variant.id}
-                          disabled={variant.quantity <= 0}
+                          type="button"
+                          disabled={isUnavailable}
                           onClick={() => {
                             setSelectedSize(variant.name);
                             setSelectedLength(variant.child_variants?.[0]?.name || null);
-                            setIsSizeDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-3 text-sm transition-colors border-b border-[#E5E5E5]/50 last:border-0
-                            ${selectedSize === variant.name ? "bg-gray-50 font-medium" : "hover:bg-gray-50"}
-                            ${variant.quantity <= 0 ? "opacity-40 cursor-not-allowed" : "text-[#1A1A1A]"}
+                          className={`min-w-[3rem] px-4 h-11 flex items-center justify-center text-sm transition-all border relative
+                            ${
+                              isSelected
+                                ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
+                                : "border-[#E5E5E5] bg-white text-[#1A1A1A] hover:border-[#1A1A1A]"
+                            }
+                            ${
+                              isUnavailable
+                                ? "opacity-40 cursor-not-allowed line-through hover:border-[#E5E5E5]"
+                                : ""
+                            }
                           `}
+                          aria-pressed={isSelected}
+                          aria-label={`Size ${variant.name}${isUnavailable ? " (Out of Stock)" : ""}`}
                         >
-                          {variant.name} {variant.quantity <= 0 ? "(Out of Stock)" : ""}
+                          {variant.name}
                         </button>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Length (Child Variants) */}
             {childVariants.length > 0 && (
@@ -622,10 +678,13 @@ export default function ProductDetailsPage() {
                   <span>{openAccordions.description ? "−" : "+"}</span>
                 </button>
                 {openAccordions.description && product.description && (
-                  <div
-                    className="mt-4 prose prose-sm max-w-none text-[#6B6B6B] font-light leading-relaxed text-xs"
-                    dangerouslySetInnerHTML={{ __html: product.description }}
-                  />
+                  <div className="mt-4 html-content">
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: (product.description || "").replace(/&nbsp;/g, " "),
+                      }}
+                    />
+                  </div>
                 )}
               </div>
 
@@ -765,6 +824,14 @@ export default function ProductDetailsPage() {
         isOpen={isSizeChartOpen}
         onClose={() => setIsSizeChartOpen(false)}
         product={product}
+      />
+      <ProductImageLightbox
+        isOpen={lightboxOpen}
+        onClose={closeLightbox}
+        images={product.image_paths}
+        currentIndex={lightboxIndex}
+        onIndexChange={setLightboxIndex}
+        productName={product.name}
       />
     </>
   );

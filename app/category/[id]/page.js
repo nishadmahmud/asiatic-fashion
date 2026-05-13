@@ -14,7 +14,11 @@ import {
   getProductsByChildCategory,
   getCampaigns,
 } from "@/lib/api";
-import { transformProduct, buildCampaignDiscountMap } from "@/lib/transformProduct";
+import {
+  transformProduct,
+  buildCampaignDiscountMap,
+  collectProductSizeLabels,
+} from "@/lib/transformProduct";
 
 export default function CategoryPage() {
   const params = useParams();
@@ -23,9 +27,12 @@ export default function CategoryPage() {
   const subcategoryId = searchParams.get("subcategory");
   const childId = searchParams.get("child");
 
+  const PAGE_SIZE = 20;
+
   const [products, setProducts] = useState([]);
   const [rawProducts, setRawProducts] = useState([]); // keep raw for filter extraction
   const [loading, setLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [categoryName, setCategoryName] = useState("");
   const [subcategoryName, setSubcategoryName] = useState("");
   const [childCategoryName, setChildCategoryName] = useState("");
@@ -35,7 +42,6 @@ export default function CategoryPage() {
   const [sortBy, setSortBy] = useState("recommended");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
   // Filter state
   const [selectedSizes, setSelectedSizes] = useState([]);
@@ -108,80 +114,149 @@ export default function CategoryPage() {
     if (categoryId) fetchCategoryData();
   }, [categoryId, subcategoryId, childId]);
 
+  // Fetch products: load page 1 fast, then merge every remaining page in parallel.
+  // We never paginate the UI — filters are client-side and need the full list.
   useEffect(() => {
-    setCurrentPage(1);
-  }, [categoryId, subcategoryId, childId]);
+    let cancelled = false;
+    // Hard cap so a misbehaving backend can't blow up the browser. 25 * 20 = 500 products.
+    const MAX_PAGES = 25;
 
-  // Fetch products
-  useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchPage = (page) => {
+      if (childId) return getProductsByChildCategory(childId, page);
+      if (subcategoryId) return getProductsBySubcategory(subcategoryId, page);
+      return getCategoryWiseProducts(categoryId, page);
+    };
+
+    const getDataBatch = (res) => {
+      if (Array.isArray(res?.data)) return res.data;
+      if (Array.isArray(res?.data?.data)) return res.data.data;
+      return [];
+    };
+
+    const getLastPage = (res) => {
+      const fromPagination = Number(res?.pagination?.last_page || 0);
+      const fromData = Number(res?.data?.last_page || 0);
+      if (fromPagination > 0) return fromPagination;
+      if (fromData > 0) return fromData;
+      return 1;
+    };
+
+    const dedupeById = (items) => {
+      const seen = new Set();
+      const out = [];
+      for (const item of items) {
+        const id = item?.id;
+        if (id == null) {
+          out.push(item);
+          continue;
+        }
+        if (seen.has(id)) continue;
+        seen.add(id);
+        out.push(item);
+      }
+      return out;
+    };
+
+    const run = async () => {
       setLoading(true);
+      setIsLoadingMore(false);
+      setRawProducts([]);
+      setProducts([]);
+
+      let campaignMap = {};
       try {
-        // Fetch campaigns for discount overlay
-        let campaignMap = {};
-        try {
-          const campaignsRes = await getCampaigns();
-          if (campaignsRes?.success && Array.isArray(campaignsRes?.campaigns?.data)) {
-            const active = campaignsRes.campaigns.data.filter((c) => c?.status === "active");
-            campaignMap = buildCampaignDiscountMap(active);
-          }
-        } catch (e) {
-          console.error("Campaign fetch error:", e);
+        const campaignsRes = await getCampaigns();
+        if (campaignsRes?.success && Array.isArray(campaignsRes?.campaigns?.data)) {
+          const active = campaignsRes.campaigns.data.filter((c) => c?.status === "active");
+          campaignMap = buildCampaignDiscountMap(active);
         }
+      } catch (e) {
+        console.error("Campaign fetch error:", e);
+      }
 
-        // Fetch products based on route context
-        let response;
-        if (childId) {
-          response = await getProductsByChildCategory(childId, currentPage);
-        } else if (subcategoryId) {
-          response = await getProductsBySubcategory(subcategoryId, currentPage);
-        } else {
-          response = await getCategoryWiseProducts(categoryId, currentPage);
-        }
+      let firstRes;
+      try {
+        firstRes = await fetchPage(1);
+      } catch (e) {
+        console.error("Error fetching products (page 1):", e);
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      if (cancelled) return;
 
-        if (response?.success && response?.data) {
-          let rawList = [];
-          if (Array.isArray(response.data)) {
-            rawList = response.data;
-          } else if (Array.isArray(response.data.data)) {
-            rawList = response.data.data;
-          }
-
-          const lastPage = Number(
-            response?.pagination?.last_page || response?.data?.last_page || 1
-          );
-          setTotalPages(lastPage);
-          setRawProducts(rawList);
-
-          const transformed = rawList.map((p) => transformProduct(p, campaignMap));
-          setProducts(transformed);
-        } else {
-          setProducts([]);
-        }
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        setProducts([]);
-      } finally {
+      if (!firstRes?.success) {
         setLoading(false);
+        return;
+      }
+
+      const firstBatch = getDataBatch(firstRes);
+      const apiTotalPages = Math.min(getLastPage(firstRes), MAX_PAGES);
+
+      setRawProducts(firstBatch);
+      setProducts(firstBatch.map((p) => transformProduct(p, campaignMap)));
+      setLoading(false);
+
+      if (apiTotalPages <= 1) return;
+
+      // Background fetch the rest in parallel and merge once.
+      setIsLoadingMore(true);
+      const remainingPages = [];
+      for (let p = 2; p <= apiTotalPages; p++) remainingPages.push(p);
+
+      try {
+        const settled = await Promise.allSettled(remainingPages.map((p) => fetchPage(p)));
+        if (cancelled) return;
+
+        const extraRaw = [];
+        for (const result of settled) {
+          if (result.status !== "fulfilled") continue;
+          const res = result.value;
+          if (!res?.success) continue;
+          extraRaw.push(...getDataBatch(res));
+        }
+
+        if (extraRaw.length > 0) {
+          const mergedRaw = dedupeById([...firstBatch, ...extraRaw]);
+          setRawProducts(mergedRaw);
+          setProducts(mergedRaw.map((p) => transformProduct(p, campaignMap)));
+        }
+      } catch (e) {
+        console.error("Error fetching additional pages:", e);
+      } finally {
+        if (!cancelled) setIsLoadingMore(false);
       }
     };
 
-    if (categoryId) fetchProducts();
-  }, [categoryId, subcategoryId, childId, currentPage]);
+    if (categoryId) run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId, subcategoryId, childId]);
 
   // Extract available filter options from raw data
   const filterOptions = useMemo(() => {
     const sizes = new Set();
     const colors = new Map();
     const brands = new Set();
-    let minP = Infinity, maxP = 0;
     rawProducts.forEach((p) => {
-      if (p.product_variants) p.product_variants.forEach((v) => { if (v.name) sizes.add(v.name); });
+      collectProductSizeLabels(p).forEach((name) => sizes.add(name));
       if (p.color) colors.set(p.color, p.color_code || "#999");
       const brand = p.brand_name || p.brands?.name;
       if (brand) brands.add(brand);
-      const price = Number(p.retails_price || 0);
-      if (price > 0) { if (price < minP) minP = price; if (price > maxP) maxP = price; }
+    });
+    // Price range MUST be derived from the same field the price filter compares
+    // against (p.price on transformed products) — otherwise the user can drag the
+    // slider into a band that doesn't correspond to any real product.
+    // ৳0 products (e.g. stock-out items with no price set) ARE valid lower bounds.
+    let minP = Infinity, maxP = 0;
+    products.forEach((p) => {
+      const raw = p?.price;
+      if (raw == null || raw === "") return;
+      const price = Number(raw);
+      if (!Number.isFinite(price) || price < 0) return;
+      if (price < minP) minP = price;
+      if (price > maxP) maxP = price;
     });
     if (minP === Infinity) minP = 0;
     // Sort sizes: numbers first (ascending), then letter sizes in order
@@ -205,15 +280,26 @@ export default function CategoryPage() {
       priceMin: minP,
       priceMax: maxP,
     };
-  }, [rawProducts]);
+  }, [rawProducts, products]);
 
-  // Sync price bounds when data loads
+  // Sync price bounds when data loads (when every product shares one price, extend the
+  // upper bound by ৳1 so the dual-range slider still has a movable track).
   useEffect(() => {
     if (filterOptions.priceMax > 0) {
-      setPriceMin(filterOptions.priceMin);
-      setPriceMax(filterOptions.priceMax);
+      const lo = filterOptions.priceMin;
+      const hi = filterOptions.priceMax;
+      setPriceMin(lo);
+      setPriceMax(hi > lo ? hi : lo + 1);
     }
   }, [filterOptions.priceMin, filterOptions.priceMax]);
+
+  const allSizesSelected =
+    filterOptions.sizes.length > 0 && filterOptions.sizes.every((s) => selectedSizes.includes(s));
+  const allColorsSelected =
+    filterOptions.colors.length > 0 &&
+    filterOptions.colors.every((c) => selectedColors.includes(c.name));
+  const allBrandsSelected =
+    filterOptions.brands.length > 0 && filterOptions.brands.every((b) => selectedBrands.includes(b));
 
   // Filter + sort products client-side
   const sortedProducts = useMemo(() => {
@@ -225,18 +311,19 @@ export default function CategoryPage() {
       result = result.filter((p) => inStockIds.has(p.id));
     }
 
-    // Size filter: match products whose sizes array has overlap
-    if (selectedSizes.length > 0) {
+    // Size filter: OR across selected sizes. Selecting every size in the facet = no size filter
+    // (otherwise products with missing variant data on the list API are wrongly excluded).
+    if (selectedSizes.length > 0 && !allSizesSelected) {
       result = result.filter((p) => p.sizes?.some((s) => selectedSizes.includes(s)));
     }
-    // Color filter: match on color name from raw data
-    if (selectedColors.length > 0) {
+    // Color filter
+    if (selectedColors.length > 0 && !allColorsSelected) {
       const colorIds = new Set(selectedColors);
       const matchingIds = new Set(rawProducts.filter((r) => colorIds.has(r.color)).map((r) => r.id));
       result = result.filter((p) => matchingIds.has(p.id));
     }
     // Brand filter
-    if (selectedBrands.length > 0) {
+    if (selectedBrands.length > 0 && !allBrandsSelected) {
       result = result.filter((p) => selectedBrands.includes(p.brand));
     }
     // Price filter
@@ -251,9 +338,85 @@ export default function CategoryPage() {
       default: break;
     }
     return result;
-  }, [products, rawProducts, sortBy, selectedSizes, selectedColors, selectedBrands, priceMin, priceMax, filterOptions.priceMin, filterOptions.priceMax, showOutOfStock]);
+  }, [
+    products,
+    rawProducts,
+    sortBy,
+    selectedSizes,
+    selectedColors,
+    selectedBrands,
+    priceMin,
+    priceMax,
+    filterOptions.priceMin,
+    filterOptions.priceMax,
+    showOutOfStock,
+    allSizesSelected,
+    allColorsSelected,
+    allBrandsSelected,
+  ]);
 
-  const activeFilterCount = selectedSizes.length + selectedColors.length + selectedBrands.length;
+  const activeFilterCount =
+    (selectedSizes.length > 0 && !allSizesSelected ? selectedSizes.length : 0) +
+    (selectedColors.length > 0 && !allColorsSelected ? selectedColors.length : 0) +
+    (selectedBrands.length > 0 && !allBrandsSelected ? selectedBrands.length : 0);
+
+  // Client-side pagination over the (already filtered + sorted) full list.
+  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const pageStart = (safeCurrentPage - 1) * PAGE_SIZE;
+  const paginatedProducts = useMemo(
+    () => sortedProducts.slice(pageStart, pageStart + PAGE_SIZE),
+    [sortedProducts, pageStart]
+  );
+
+  // Snap currentPage back into range when filters/sort shrink the result set.
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  // Reset to page 1 whenever filters / sort / category context change.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    categoryId,
+    subcategoryId,
+    childId,
+    sortBy,
+    selectedSizes,
+    selectedColors,
+    selectedBrands,
+    priceMin,
+    priceMax,
+    showOutOfStock,
+  ]);
+
+  const goToPage = (page) => {
+    const target = Math.min(Math.max(1, page), totalPages);
+    setCurrentPage(target);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // Build a compact list of page tokens with ellipses: 1 … 4 5 [6] 7 8 … 20
+  const pageTokens = (() => {
+    const tokens = [];
+    const delta = 1;
+    const add = (v) => tokens.push(v);
+    const range = (from, to) => {
+      for (let i = from; i <= to; i++) add(i);
+    };
+    if (totalPages <= 7) {
+      range(1, totalPages);
+      return tokens;
+    }
+    add(1);
+    if (safeCurrentPage - delta > 2) add("…");
+    range(Math.max(2, safeCurrentPage - delta), Math.min(totalPages - 1, safeCurrentPage + delta));
+    if (safeCurrentPage + delta < totalPages - 1) add("…");
+    add(totalPages);
+    return tokens;
+  })();
 
   const activeSubcategory = useMemo(
     () => subcategories.find((s) => String(s.id) === String(subcategoryId)),
@@ -273,7 +436,16 @@ export default function CategoryPage() {
   const toggleCheckbox = (value, selected, setter) => {
     setter((prev) => prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]);
   };
-  const clearAllFilters = () => { setSelectedSizes([]); setSelectedColors([]); setSelectedBrands([]); setPriceMin(filterOptions.priceMin); setPriceMax(filterOptions.priceMax); setShowOutOfStock(true); };
+  const clearAllFilters = () => {
+    setSelectedSizes([]);
+    setSelectedColors([]);
+    setSelectedBrands([]);
+    const lo = filterOptions.priceMin;
+    const hi = filterOptions.priceMax;
+    setPriceMin(lo);
+    setPriceMax(hi > lo ? hi : lo + 1);
+    setShowOutOfStock(true);
+  };
 
   const displayName =
     childCategoryName || subcategoryName || categoryName || "Collection";
@@ -492,17 +664,78 @@ export default function CategoryPage() {
               ))}
             </div>
           ) : sortedProducts.length > 0 ? (
-            <div
-              className={`grid gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16 ${
-                mobileListView
-                  ? "grid-cols-1 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
-                  : "grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
-              }`}
-            >
-              {sortedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} showMobileArrows={mobileListView} />
-              ))}
-            </div>
+            <>
+              <div
+                className={`grid gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16 ${
+                  mobileListView
+                    ? "grid-cols-1 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
+                    : "grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
+                }`}
+              >
+                {paginatedProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} showMobileArrows={mobileListView} />
+                ))}
+              </div>
+
+              <div className="mt-10 flex flex-col items-center gap-3 text-[10px] uppercase tracking-widest text-[#6B6B6B]">
+                <span>
+                  Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, sortedProducts.length)} of{" "}
+                  {sortedProducts.length}
+                </span>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-3 text-xs font-medium text-[#1A1A1A]">
+                    <button
+                      type="button"
+                      onClick={() => goToPage(safeCurrentPage - 1)}
+                      disabled={safeCurrentPage <= 1}
+                      className="flex items-center gap-1 text-[#999999] hover:text-[#1A1A1A] disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Previous page"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                      </svg>
+                      Prev
+                    </button>
+
+                    {pageTokens.map((token, idx) =>
+                      token === "…" ? (
+                        <span key={`e-${idx}`} className="text-[#999999]">
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={token}
+                          type="button"
+                          onClick={() => goToPage(token)}
+                          className={
+                            safeCurrentPage === token
+                              ? "border-b border-[#1A1A1A]"
+                              : "text-[#999999] hover:text-[#1A1A1A]"
+                          }
+                          aria-current={safeCurrentPage === token ? "page" : undefined}
+                        >
+                          {token}
+                        </button>
+                      )
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => goToPage(safeCurrentPage + 1)}
+                      disabled={safeCurrentPage >= totalPages}
+                      className="flex items-center gap-1 text-[#999999] hover:text-[#1A1A1A] disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Next page"
+                    >
+                      Next
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <div className="text-center py-20">
               <p className="text-[#999999] text-sm tracking-widest uppercase">
@@ -511,48 +744,10 @@ export default function CategoryPage() {
             </div>
           )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 mt-20 text-xs font-medium text-[#1A1A1A]">
-              {currentPage > 1 && (
-                <button
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                  className="cursor-pointer text-[#999999] hover:text-[#1A1A1A] mr-2 flex items-center gap-1"
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                  </svg>
-                  Prev
-                </button>
-              )}
-              {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
-                const page = i + 1;
-                return (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={
-                      currentPage === page
-                        ? "cursor-pointer border-b border-[#1A1A1A]"
-                        : "cursor-pointer text-[#999999] hover:text-[#1A1A1A]"
-                    }
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-              {totalPages > 5 && <span className="text-[#999999]">...</span>}
-              {currentPage < totalPages && (
-                <button
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  className="cursor-pointer text-[#999999] hover:text-[#1A1A1A] ml-2 flex items-center gap-1"
-                >
-                  Next
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </button>
-              )}
+          {isLoadingMore && !loading && (
+            <div className="mt-6 flex items-center justify-center gap-2 text-xs uppercase tracking-widest text-[#999]">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[#1A1A1A]" />
+              Loading more products…
             </div>
           )}
         </div>
@@ -611,26 +806,64 @@ export default function CategoryPage() {
                 <span>Price</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${expandedFilters.price ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
-              {expandedFilters.price && filterOptions.priceMax > 0 && (
-                <div>
-                  <div className="flex items-center justify-between text-xs text-[#6B6B6B] mb-4">
-                    <span>৳{priceMin.toLocaleString()}</span>
-                    <span>৳{priceMax.toLocaleString()}</span>
+              {expandedFilters.price && filterOptions.priceMax > 0 && (() => {
+                const dataLo = filterOptions.priceMin;
+                const dataHi = filterOptions.priceMax;
+                const uniform = dataHi <= dataLo;
+                const lo = dataLo;
+                const hi = uniform ? dataLo + 1 : dataHi;
+                const span = Math.max(1, hi - lo);
+                const safeMin = Math.max(lo, Math.min(priceMin, hi));
+                const safeMax = Math.max(lo, Math.min(priceMax, hi));
+                const minPct = ((safeMin - lo) / span) * 100;
+                const maxPct = ((safeMax - lo) / span) * 100;
+                const step = Math.max(1, Math.round(span / 100));
+                const labelMax =
+                  uniform && safeMax >= hi ? dataHi : safeMax;
+                return (
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-[#6B6B6B] mb-3">
+                      <span>৳{safeMin.toLocaleString()}</span>
+                      <span>৳{labelMax.toLocaleString()}</span>
+                    </div>
+                    <div className="dual-range-wrapper">
+                      <div className="track" />
+                      <div
+                        className="track-fill"
+                        style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
+                      />
+                      <input
+                        type="range"
+                        className="dual-range"
+                        min={lo}
+                        max={hi}
+                        step={step}
+                        value={safeMin}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          if (v <= safeMax - step) setPriceMin(v);
+                          else setPriceMin(Math.max(lo, safeMax - step));
+                        }}
+                        aria-label="Minimum price"
+                      />
+                      <input
+                        type="range"
+                        className="dual-range"
+                        min={lo}
+                        max={hi}
+                        step={step}
+                        value={safeMax}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          if (v >= safeMin + step) setPriceMax(v);
+                          else setPriceMax(Math.min(hi, safeMin + step));
+                        }}
+                        aria-label="Maximum price"
+                      />
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-4">
-                    <label className="text-[10px] text-[#999] uppercase tracking-widest">Min Price
-                      <input type="range" min={filterOptions.priceMin} max={filterOptions.priceMax} value={priceMin}
-                        onChange={(e) => setPriceMin(Math.min(Number(e.target.value), priceMax))}
-                        className="w-full mt-1 accent-[#1A1A1A]" />
-                    </label>
-                    <label className="text-[10px] text-[#999] uppercase tracking-widest">Max Price
-                      <input type="range" min={filterOptions.priceMin} max={filterOptions.priceMax} value={priceMax}
-                        onChange={(e) => setPriceMax(Math.max(Number(e.target.value), priceMin))}
-                        className="w-full mt-1 accent-[#1A1A1A]" />
-                    </label>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             {/* Size Filter */}
@@ -682,14 +915,44 @@ export default function CategoryPage() {
               </button>
               {expandedFilters.brand && (
                 <div className="flex flex-col gap-3">
-                  {filterOptions.brands.map((brand) => (
-                    <label key={brand} className="flex items-center gap-3 cursor-pointer group">
-                      <span className={`w-4 h-4 border flex items-center justify-center transition-all ${
-                        selectedBrands.includes(brand) ? 'bg-[#1A1A1A] border-[#1A1A1A]' : 'border-[#E5E5E5] group-hover:border-[#1A1A1A]'
-                      }`}>{selectedBrands.includes(brand) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}</span>
-                      <span className="text-xs text-[#1A1A1A]" onClick={() => toggleCheckbox(brand, selectedBrands, setSelectedBrands)}>{brand}</span>
-                    </label>
-                  ))}
+                  {filterOptions.brands.map((brand) => {
+                    const checked = selectedBrands.includes(brand);
+                    return (
+                      <label
+                        key={brand}
+                        className="flex items-center gap-3 cursor-pointer group select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={checked}
+                          onChange={() => toggleCheckbox(brand, selectedBrands, setSelectedBrands)}
+                        />
+                        <span
+                          aria-hidden="true"
+                          className={`w-4 h-4 border flex items-center justify-center transition-all ${
+                            checked
+                              ? "bg-[#1A1A1A] border-[#1A1A1A]"
+                              : "border-[#E5E5E5] group-hover:border-[#1A1A1A]"
+                          }`}
+                        >
+                          {checked && (
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="white"
+                              strokeWidth="3"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          )}
+                        </span>
+                        <span className="text-xs text-[#1A1A1A]">{brand}</span>
+                      </label>
+                    );
+                  })}
                   {filterOptions.brands.length === 0 && <p className="text-xs text-[#999]">No brands available</p>}
                 </div>
               )}
