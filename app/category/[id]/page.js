@@ -31,7 +31,7 @@ export default function CategoryPage() {
   const [childCategoryName, setChildCategoryName] = useState("");
   const [bannerImage, setBannerImage] = useState(null);
   const [subcategories, setSubcategories] = useState([]);
-  const [mobileListView, setMobileListView] = useState(false);
+  const [mobileListView, setMobileListView] = useState(true);
   const [sortBy, setSortBy] = useState("recommended");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -500,7 +500,7 @@ export default function CategoryPage() {
               }`}
             >
               {sortedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} showMobileArrows={mobileListView} />
               ))}
             </div>
           ) : (

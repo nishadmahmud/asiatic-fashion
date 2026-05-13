@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
+import SizeChartModal from "@/components/SizeChartModal";
 
 import ProductCard from "@/components/ProductCard/ProductCard";
 import { getProductById, getRelatedProduct, getCampaigns } from "@/lib/api";
@@ -32,8 +33,15 @@ export default function ProductDetailsPage() {
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedLength, setSelectedLength] = useState(null);
-  const [openAccordions, setOpenAccordions] = useState({ description: true, specs: false });
+  const [openAccordions, setOpenAccordions] = useState({
+    description: true,
+    materialCare: false,
+    specs: false,
+    additionalInfo: false,
+  });
   const [isSizeDropdownOpen, setIsSizeDropdownOpen] = useState(false);
+  const [currentMobileImage, setCurrentMobileImage] = useState(0);
+  const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
 
   const toggleAccordion = (section) => {
     setOpenAccordions((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -42,6 +50,10 @@ export default function ProductDetailsPage() {
     const normalized = String(type || "").toLowerCase();
     return normalized === "amount" || normalized === "fixed";
   };
+  const decodeAndNormalizeHtml = (html) =>
+    String(html || "")
+      .replace(/&nbsp;/g, " ")
+      .trim();
 
   // Fetch product data
   useEffect(() => {
@@ -119,6 +131,37 @@ export default function ProductDetailsPage() {
                   (img) => typeof img === "string" && img.trim() !== ""
                 );
 
+          const specsArray = Array.isArray(apiProduct.specifications)
+            ? apiProduct.specifications
+            : [];
+          const resolvedDescription = decodeAndNormalizeHtml(
+            apiProduct.description || apiProduct.short_description || ""
+          );
+          const materialSpec =
+            specsArray.find((s) =>
+              String(s?.name || "")
+                .toLowerCase()
+                .includes("fabric")
+            )?.description ||
+            specsArray.find((s) =>
+              String(s?.name || "")
+                .toLowerCase()
+                .includes("material")
+            )?.description ||
+            null;
+          const washSpec =
+            specsArray.find((s) =>
+              String(s?.name || "")
+                .toLowerCase()
+                .includes("wash")
+            )?.description ||
+            specsArray.find((s) =>
+              String(s?.name || "")
+                .toLowerCase()
+                .includes("care")
+            )?.description ||
+            null;
+
           const transformed = {
             id: apiProduct.id,
             name: apiProduct.name,
@@ -136,8 +179,19 @@ export default function ProductDetailsPage() {
             product_variants: apiProduct.product_variants || [],
             variants: variantMap,
             unavailableSizes,
-            specifications: apiProduct.specifications || [],
-            description: apiProduct.description || "",
+            specifications: specsArray,
+            description: resolvedDescription,
+            short_description: decodeAndNormalizeHtml(apiProduct.short_description || ""),
+            materialCare: {
+              material: materialSpec,
+              wash: washSpec,
+            },
+            manufacturerDetails: apiProduct.manufacturer_details || null,
+            packerDetails: apiProduct.packer_details || null,
+            importerDetails: apiProduct.importer_details || null,
+            sellerDetails: apiProduct.seller_details || null,
+            countryOfOrigin: apiProduct.country_of_origin || apiProduct.country || null,
+            size_chart_category: apiProduct.size_chart_category || null,
             current_stock: apiProduct.current_stock || 0,
             isOutOfStock: apiProduct.current_stock === 0,
           };
@@ -200,6 +254,10 @@ export default function ProductDetailsPage() {
     fetchRelated();
   }, [productId, loading]);
 
+  useEffect(() => {
+    setCurrentMobileImage(0);
+  }, [productId]);
+
   // MRP for selected variant (or product base); discount applied in getDisplayPrice via saleRule
   const getVariantMrp = () => {
     if (!product) return 0;
@@ -232,6 +290,14 @@ export default function ProductDetailsPage() {
   const scrollToImage = (index) => {
     const element = document.getElementById(`product-image-${index}`);
     if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const totalImages = Array.isArray(product?.image_paths) ? product.image_paths.length : 0;
+  const hasMultipleImages = totalImages > 1;
+  const goPrevMobileImage = () => {
+    setCurrentMobileImage((prev) => (prev === 0 ? totalImages - 1 : prev - 1));
+  };
+  const goNextMobileImage = () => {
+    setCurrentMobileImage((prev) => (prev === totalImages - 1 ? 0 : prev + 1));
   };
 
   // Loading skeleton
@@ -345,20 +411,50 @@ export default function ProductDetailsPage() {
 
             {/* Main Scrolling Images */}
             <div className="flex-1 flex flex-col gap-4 md:gap-8 w-full">
-              {/* Mobile snap scrolling */}
-              <div className="flex md:hidden gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 w-full">
-                {product.image_paths.map((img, index) => (
-                  <div key={index} className="relative w-[85vw] sm:w-[60vw] aspect-[3/4] shrink-0 snap-center bg-[#F8F8F6]">
-                    <Image src={img} alt={`${product.name} - Image ${index + 1}`} fill priority={index === 0} unoptimized className="object-cover object-center" sizes="100vw" />
-                  </div>
-                ))}
+              {/* Mobile carousel */}
+              <div className="relative md:hidden w-full pb-4">
+                <div className="relative w-full aspect-[3/4] bg-[#F8F8F6]">
+                  <Image
+                    src={product.image_paths[currentMobileImage]}
+                    alt={`${product.name} - Image ${currentMobileImage + 1}`}
+                    fill
+                    priority={currentMobileImage === 0}
+                    unoptimized
+                    className="object-contain object-center"
+                    sizes="100vw"
+                  />
+                </div>
+                {hasMultipleImages && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={goPrevMobileImage}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center bg-white/90 text-[#1A1A1A] shadow-sm"
+                      aria-label="Previous image"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goNextMobileImage}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center bg-white/90 text-[#1A1A1A] shadow-sm"
+                      aria-label="Next image"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Desktop vertical stacked images */}
               <div className="hidden md:flex flex-col gap-8 w-full">
                 {product.image_paths.map((img, index) => (
                   <div key={index} id={`product-image-${index}`} className="relative w-full aspect-[3/4] bg-[#F8F8F6] scroll-mt-[130px]">
-                    <Image src={img} alt={`${product.name} - Image ${index + 1}`} fill priority={index === 0} unoptimized className="object-cover object-center" sizes="(max-width: 1024px) 100vw, 65vw" />
+                    <Image src={img} alt={`${product.name} - Image ${index + 1}`} fill priority={index === 0} unoptimized className="object-contain object-center" sizes="(max-width: 1024px) 100vw, 65vw" />
                   </div>
                 ))}
               </div>
@@ -412,7 +508,11 @@ export default function ProductDetailsPage() {
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm text-[#1A1A1A]">Size</h4>
-                  <button className="text-xs text-[#1A1A1A] underline underline-offset-4 hover:text-[#6B6B6B] transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => setIsSizeChartOpen(true)}
+                    className="text-xs text-[#1A1A1A] underline underline-offset-4 hover:text-[#6B6B6B] transition-colors"
+                  >
                     Size Guide
                   </button>
                 </div>
@@ -529,6 +629,39 @@ export default function ProductDetailsPage() {
                 )}
               </div>
 
+              {(product.materialCare?.material || product.materialCare?.wash) && (
+                <div className="py-4 border-b border-[#E5E5E5]">
+                  <button
+                    onClick={() => toggleAccordion("materialCare")}
+                    className="w-full flex items-center justify-between text-sm text-[#1A1A1A]"
+                  >
+                    <span className="flex items-center gap-2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M4 6h16M4 12h16M4 18h16"></path>
+                      </svg>
+                      Material & Care
+                    </span>
+                    <span>{openAccordions.materialCare ? "−" : "+"}</span>
+                  </button>
+                  {openAccordions.materialCare && (
+                    <div className="mt-4 space-y-2 text-xs">
+                      {product.materialCare?.material && (
+                        <p className="text-[#1A1A1A]">
+                          <span className="text-[#6B6B6B]">Material: </span>
+                          {product.materialCare.material}
+                        </p>
+                      )}
+                      {product.materialCare?.wash && (
+                        <p className="text-[#1A1A1A]">
+                          <span className="text-[#6B6B6B]">Care: </span>
+                          {product.materialCare.wash}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {product.specifications.length > 0 && (
                 <div className="py-4 border-b border-[#E5E5E5]">
                   <button
@@ -553,6 +686,52 @@ export default function ProductDetailsPage() {
                           <span className="text-[#1A1A1A]">{spec.description}</span>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(product.manufacturerDetails ||
+                product.packerDetails ||
+                product.importerDetails ||
+                product.sellerDetails ||
+                product.countryOfOrigin ||
+                product.sku) && (
+                <div className="py-4 border-b border-[#E5E5E5]">
+                  <button
+                    onClick={() => toggleAccordion("additionalInfo")}
+                    className="w-full flex items-center justify-between text-sm text-[#1A1A1A]"
+                  >
+                    <span className="flex items-center gap-2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                      </svg>
+                      Additional Information
+                    </span>
+                    <span>{openAccordions.additionalInfo ? "−" : "+"}</span>
+                  </button>
+                  {openAccordions.additionalInfo && (
+                    <div className="mt-4 space-y-2 text-xs">
+                      {product.manufacturerDetails && (
+                        <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Manufacturer: </span>{product.manufacturerDetails}</p>
+                      )}
+                      {product.packerDetails && (
+                        <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Packer: </span>{product.packerDetails}</p>
+                      )}
+                      {product.importerDetails && (
+                        <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Importer: </span>{product.importerDetails}</p>
+                      )}
+                      {product.sellerDetails && (
+                        <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Seller: </span>{product.sellerDetails}</p>
+                      )}
+                      {product.countryOfOrigin && (
+                        <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Country of origin: </span>{product.countryOfOrigin}</p>
+                      )}
+                      {product.sku && (
+                        <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Product code: </span>{product.sku}</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -582,6 +761,11 @@ export default function ProductDetailsPage() {
 
 
       <Footer />
+      <SizeChartModal
+        isOpen={isSizeChartOpen}
+        onClose={() => setIsSizeChartOpen(false)}
+        product={product}
+      />
     </>
   );
 }

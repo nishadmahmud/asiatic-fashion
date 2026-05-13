@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, showMobileArrows = false }) {
   const [currentImg, setCurrentImg] = useState(0);
 
   const brand = product.brand || "ASIATIC";
@@ -45,7 +45,7 @@ export default function ProductCard({ product }) {
             alt={product.name}
             fill
             unoptimized
-            className="object-cover transition-all duration-500 group-hover:scale-105"
+            className="object-contain object-center transition-all duration-500 group-hover:scale-105"
           />
 
           {/* Discount Badge */}
@@ -55,12 +55,16 @@ export default function ProductCard({ product }) {
             </div>
           )}
 
-          {/* Navigation Arrows — visible on hover only */}
+          {/* Desktop arrows (hover) + optional mobile arrows for list view */}
           {hasMultiple && (
             <>
               <button
                 onClick={prevImg}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 hover:bg-white shadow-sm"
+                className={`absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm items-center justify-center transition-opacity duration-300 z-10 hover:bg-white shadow-sm ${
+                  showMobileArrows
+                    ? "flex md:hidden"
+                    : "hidden md:flex opacity-0 md:group-hover:opacity-100"
+                }`}
                 aria-label="Previous image"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2">
@@ -69,7 +73,11 @@ export default function ProductCard({ product }) {
               </button>
               <button
                 onClick={nextImg}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 hover:bg-white shadow-sm"
+                className={`absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm items-center justify-center transition-opacity duration-300 z-10 hover:bg-white shadow-sm ${
+                  showMobileArrows
+                    ? "flex md:hidden"
+                    : "hidden md:flex opacity-0 md:group-hover:opacity-100"
+                }`}
                 aria-label="Next image"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2">
@@ -78,7 +86,11 @@ export default function ProductCard({ product }) {
               </button>
 
               {/* Dot Indicators */}
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 transition-opacity duration-300 ${
+                showMobileArrows
+                  ? "opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                  : "opacity-0 group-hover:opacity-100"
+              }`}>
                 {images.slice(0, 5).map((_, idx) => (
                   <span
                     key={idx}

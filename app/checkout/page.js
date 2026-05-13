@@ -289,6 +289,7 @@ export default function CheckoutPage() {
                 price: item.price,
                 mode: 1, 
                 size: item.selectedSize || "Free Size", 
+                color: item.selectedColor || null,
                 sales_id: process.env.NEXT_PUBLIC_USER_ID,
             })),
             delivery_method_id: 1, 

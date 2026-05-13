@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
+import { getRelatedProduct } from '@/lib/api';
 
 const CartSidebar = () => {
     const router = useRouter();
@@ -17,6 +18,9 @@ const CartSidebar = () => {
         getSubtotal,
         getCartCount
     } = useCart();
+    const [recommendedProducts, setRecommendedProducts] = useState([]);
+
+    const firstCartItemId = useMemo(() => cartItems[0]?.id || null, [cartItems]);
 
     const handleCardNavigation = (itemId) => {
         setIsCartOpen(false);
@@ -34,6 +38,40 @@ const CartSidebar = () => {
             document.body.style.overflow = 'unset';
         };
     }, [isCartOpen]);
+
+    useEffect(() => {
+        const fetchRecommended = async () => {
+            if (!isCartOpen || !firstCartItemId) {
+                setRecommendedProducts([]);
+                return;
+            }
+            try {
+                const response = await getRelatedProduct(firstCartItemId);
+                const rawList = Array.isArray(response)
+                    ? response
+                    : response?.success && Array.isArray(response?.data)
+                      ? response.data
+                      : [];
+
+                const mapped = rawList
+                    .filter((p) => String(p.id) !== String(firstCartItemId))
+                    .slice(0, 6)
+                    .map((p) => ({
+                        id: p.id,
+                        name: p.name,
+                        image: (Array.isArray(p.image_paths) && p.image_paths[0]) || p.image_path || "/placeholder.png",
+                        price: Number(p.retails_price || 0),
+                    }));
+
+                setRecommendedProducts(mapped);
+            } catch (error) {
+                console.error("Error fetching cart recommendations:", error);
+                setRecommendedProducts([]);
+            }
+        };
+
+        fetchRecommended();
+    }, [isCartOpen, firstCartItemId]);
 
     if (!isCartOpen) return null;
 
@@ -177,6 +215,7 @@ const CartSidebar = () => {
                                     </button>
                                 </div>
                             ))}
+
                         </div>
                     )}
                 </div>
@@ -184,6 +223,42 @@ const CartSidebar = () => {
                 {/* Footer */}
                 {cartItems.length > 0 && (
                     <div className="border-t border-[#E5E5E5] p-6 bg-[#F8F8F6] space-y-6">
+                        {recommendedProducts.length > 0 && (
+                            <div>
+                                <div className="mb-3 flex items-center justify-between">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#1A1A1A]">
+                                        We recommend
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {recommendedProducts.slice(0, 2).map((product) => (
+                                        <Link
+                                            key={product.id}
+                                            href={`/product/${product.id}`}
+                                            onClick={() => setIsCartOpen(false)}
+                                            className="group block"
+                                        >
+                                            <div className="relative aspect-[3/4] w-full bg-white">
+                                                <Image
+                                                    src={product.image}
+                                                    alt={product.name}
+                                                    fill
+                                                    unoptimized
+                                                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                                />
+                                            </div>
+                                            <p className="mt-2 line-clamp-2 text-[10px] uppercase tracking-wide text-[#6B6B6B]">
+                                                {product.name}
+                                            </p>
+                                            <p className="mt-1 text-xs font-bold text-[#1A1A1A]">
+                                                ৳{product.price.toLocaleString()}
+                                            </p>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Subtotal */}
                         <div className="flex items-center justify-between text-sm font-bold tracking-widest uppercase text-[#1A1A1A]">
                             <span>Subtotal:</span>
@@ -200,12 +275,6 @@ const CartSidebar = () => {
                                 className="block w-full py-4 text-center bg-[#1A1A1A] text-white font-bold uppercase tracking-widest text-xs hover:bg-[#333333] transition-colors"
                             >
                                 Checkout
-                            </button>
-                            <button
-                                onClick={() => setIsCartOpen(false)}
-                                className="block w-full py-4 text-center border border-[#1A1A1A] text-[#1A1A1A] font-bold uppercase tracking-widest text-xs hover:bg-[#1A1A1A] hover:text-white transition-colors"
-                            >
-                                Continue Shopping
                             </button>
                         </div>
                     </div>

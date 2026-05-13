@@ -28,12 +28,32 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (user) {
+      let first = user.first_name || "";
+      let last = user.last_name || "";
+      if (!first && user.name) {
+        const parts = String(user.name).trim().split(/\s+/);
+        first = parts[0] || "";
+        last = parts.slice(1).join(" ");
+      }
+
+      const resolvedPhone =
+        user.mobile_number ||
+        user.phone ||
+        user.mobile ||
+        user.contact_no ||
+        "";
+
+      const resolvedAddress =
+        user.address ||
+        [user.address_one, user.address_two].filter(Boolean).join(", ") ||
+        "";
+
       setProfileForm({
-        first_name: user.first_name || "",
-        last_name: user.last_name || "",
+        first_name: first,
+        last_name: last,
         email: user.email || "",
-        mobile_number: user.mobile_number || user.phone || "",
-        address: user.address || ""
+        mobile_number: resolvedPhone,
+        address: resolvedAddress
       });
     }
   }, [user]);

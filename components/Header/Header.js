@@ -13,6 +13,8 @@ import CategoryNavBar from "@/components/CategoryNavBar/CategoryNavBar";
 
 export default function Header({ initialCategories = [] }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState(null);
+  const [expandedSubcategory, setExpandedSubcategory] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -312,17 +314,120 @@ export default function Header({ initialCategories = [] }) {
               <div className="px-6 py-4">
                 <p className="text-[10px] font-bold tracking-widest uppercase text-[#999999] mb-4">Categories</p>
                 <div className="grid grid-cols-1 gap-2">
-                  {categories.map((cat) => (
-                        <Link
-                          key={cat.category_id}
-                          href={`/category/${cat.category_id}`}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center justify-between py-2.5 px-3 bg-[#F8F8F6] rounded-sm group hover:bg-[#1A1A1A] transition-colors"
-                        >
-                          <span className="text-[11px] font-bold tracking-widest uppercase text-[#1A1A1A] group-hover:text-white">{cat.name}</span>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#999999] group-hover:text-white"><path d="m9 18 6-6-6-6"/></svg>
-                        </Link>
-                      ))}
+                  {categories.map((cat) => {
+                    const subcategories = Array.isArray(cat.sub_category) ? cat.sub_category : [];
+                    const hasSubcategories = subcategories.length > 0;
+                    const isCategoryExpanded = String(expandedCategory) === String(cat.category_id);
+
+                    return (
+                      <div key={cat.category_id} className="rounded-sm bg-[#F8F8F6]">
+                        <div className="flex items-center justify-between px-3 py-2.5">
+                          <Link
+                            href={`/category/${cat.category_id}`}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="min-w-0 flex-1"
+                          >
+                            <span className="block truncate text-[11px] font-bold tracking-widest uppercase text-[#1A1A1A]">
+                              {cat.name}
+                            </span>
+                          </Link>
+
+                          {hasSubcategories && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setExpandedCategory((prev) =>
+                                  String(prev) === String(cat.category_id) ? null : cat.category_id
+                                );
+                                setExpandedSubcategory(null);
+                              }}
+                              className="ml-3 flex h-6 w-6 shrink-0 items-center justify-center text-[#1A1A1A]"
+                              aria-label={`Toggle ${cat.name} subcategories`}
+                            >
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className={`transition-transform ${isCategoryExpanded ? "rotate-90" : ""}`}
+                              >
+                                <path d="m9 18 6-6-6-6" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+
+                        {hasSubcategories && isCategoryExpanded && (
+                          <div className="border-t border-[#E5E5E5] px-3 py-2 space-y-1">
+                            {subcategories.map((sub) => {
+                              const children = Array.isArray(sub.child_categories) ? sub.child_categories : [];
+                              const hasChildren = children.length > 0;
+                              const subKey = `${cat.category_id}-${sub.id}`;
+                              const isSubExpanded = expandedSubcategory === subKey;
+
+                              return (
+                                <div key={sub.id}>
+                                  <div className="flex items-center justify-between py-1.5">
+                                    <Link
+                                      href={`/category/${cat.category_id}?subcategory=${sub.id}`}
+                                      onClick={() => setMobileMenuOpen(false)}
+                                      className="min-w-0 flex-1"
+                                    >
+                                      <span className="block truncate text-[10px] font-bold tracking-wide uppercase text-[#1A1A1A]">
+                                        {sub.name}
+                                      </span>
+                                    </Link>
+
+                                    {hasChildren && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setExpandedSubcategory((prev) => (prev === subKey ? null : subKey))
+                                        }
+                                        className="ml-3 flex h-5 w-5 shrink-0 items-center justify-center text-[#6B6B6B]"
+                                        aria-label={`Toggle ${sub.name} child categories`}
+                                      >
+                                        <svg
+                                          width="10"
+                                          height="10"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          className={`transition-transform ${isSubExpanded ? "rotate-90" : ""}`}
+                                        >
+                                          <path d="m9 18 6-6-6-6" />
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {hasChildren && isSubExpanded && (
+                                    <div className="pl-3 pb-1 space-y-1">
+                                      {children.map((child) => (
+                                        <Link
+                                          key={child.id}
+                                          href={`/category/${cat.category_id}?subcategory=${sub.id}&child=${child.id}`}
+                                          onClick={() => setMobileMenuOpen(false)}
+                                          className="block py-1"
+                                        >
+                                          <span className="text-[10px] uppercase tracking-wide text-[#6B6B6B]">
+                                            {child.name}
+                                          </span>
+                                        </Link>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

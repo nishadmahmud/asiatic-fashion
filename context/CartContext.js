@@ -37,6 +37,11 @@ export const CartProvider = ({ children }) => {
 
     // Add item to cart
     const addToCart = (product, quantity = 1, selectedSize = null, selectedColor = null, variantId = null, childVariantId = null) => {
+        const resolvedColor = selectedColor ||
+            (Array.isArray(product.color) ? product.color[0] : product.color) ||
+            product.color_name ||
+            null;
+
         trackAddToCart({
             product,
             quantity,
@@ -49,7 +54,7 @@ export const CartProvider = ({ children }) => {
             const existingItemIndex = prevItems.findIndex(
                 item => item.id === product.id &&
                     item.selectedSize === selectedSize &&
-                    item.selectedColor === selectedColor &&
+                    item.selectedColor === resolvedColor &&
                     item.variantId === variantId &&
                     item.childVariantId === childVariantId
             );
@@ -82,6 +87,8 @@ export const CartProvider = ({ children }) => {
                 item.maxStock = product.currentStock || item.maxStock || 99;
                 item.variantStockMap = product.variantStockMap || item.variantStockMap || {};
                 item.availableSizes = product.sizes || item.availableSizes || [];
+                item.selectedColor = resolvedColor;
+                item.colorCode = product.color_code || item.colorCode || null;
 
                 return updatedItems;
             } else {
@@ -95,9 +102,10 @@ export const CartProvider = ({ children }) => {
                     image: product.image_paths?.[0] || product.images?.[0] || product.image_path || product.image,
                     quantity: quantity,
                     selectedSize: selectedSize,
-                    selectedColor: selectedColor,
+                    selectedColor: resolvedColor,
                     variantId: variantId,
                     childVariantId: childVariantId,
+                    colorCode: product.color_code || null,
                     brand: product.brand || null,
                     maxStock: product.currentStock || 99,
                     variantStockMap: product.variantStockMap || {},
