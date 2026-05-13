@@ -40,22 +40,22 @@ export default function ProfileLayout({ children }) {
     <div className="min-h-screen bg-[#F8F8F6] flex flex-col">
       <Header />
       
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-12 py-12 md:py-20 flex flex-col md:flex-row gap-12">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-12 py-6 md:py-20 flex flex-col md:flex-row gap-6 md:gap-12">
         {/* Sidebar */}
         <aside className="w-full md:w-64 shrink-0">
-          <div className="mb-8">
+          <div className="mb-4 md:mb-8">
             <h1 className="text-xl font-bold tracking-tight uppercase text-[#1A1A1A]">My Account</h1>
             <p className="text-sm text-[#6B6B6B] mt-2">Welcome back, {user.first_name || user.name || "Guest"}</p>
           </div>
           
-          <nav className="flex flex-col gap-1">
+          <nav className="flex gap-2 overflow-x-auto pb-2 md:flex-col md:gap-1 md:overflow-visible md:pb-0">
             {NAV_LINKS.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-4 py-3 text-xs font-bold tracking-widest uppercase transition-colors border-l-2 ${
+                  className={`whitespace-nowrap px-4 py-3 text-xs font-bold tracking-widest uppercase transition-colors border-l-2 md:whitespace-normal ${
                     isActive 
                       ? "border-[#1A1A1A] bg-white text-[#1A1A1A]" 
                       : "border-transparent text-[#999999] hover:bg-white hover:text-[#1A1A1A]"
@@ -65,17 +65,17 @@ export default function ProfileLayout({ children }) {
                 </Link>
               );
             })}
-            <button
-              onClick={logout}
-              className="px-4 py-3 text-xs font-bold tracking-widest uppercase text-left transition-colors border-l-2 border-transparent text-[#999999] hover:bg-white hover:text-red-600 mt-4"
-            >
-              Sign Out
-            </button>
+              <button
+                onClick={logout}
+                className="whitespace-nowrap px-4 py-3 text-xs font-bold tracking-widest uppercase text-left transition-colors border-l-2 border-transparent text-[#999999] hover:bg-white hover:text-red-600 md:mt-4"
+              >
+                Sign Out
+              </button>
           </nav>
         </aside>
 
         {/* Content Area */}
-        <div className="flex-1 bg-white border border-[#E5E5E5] p-6 md:p-10">
+        <div className="flex-1 bg-white border border-[#E5E5E5] p-4 md:p-10">
           {children}
         </div>
       </main>
