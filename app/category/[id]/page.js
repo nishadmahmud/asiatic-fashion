@@ -473,27 +473,37 @@ export default function CategoryPage() {
           )}
         </div>
 
-        {/* Mobile: subcategories + title + filter / layout (no banner) */}
+        {/* Mobile: title + sub/child pills + filter / layout (no banner) */}
         <div className="md:hidden border-b border-[#E5E5E5] bg-white">
+          <div
+            className={`grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-1 px-2 pt-4 ${
+              subcategories.length > 0 ? "pb-2" : "pb-3"
+            }`}
+          >
+            <div className="flex justify-center">
+              {subcategoryId ? (
+                <Link
+                  href={
+                    childId
+                      ? `/category/${categoryId}?subcategory=${subcategoryId}`
+                      : `/category/${categoryId}`
+                  }
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#F8F8F6] transition-colors"
+                  aria-label={childId ? "Back to subcategory" : "Back to all subcategories"}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </Link>
+              ) : null}
+            </div>
+            <h1 className="min-w-0 text-center text-lg font-bold capitalize tracking-tight text-[#1A1A1A] [overflow-wrap:anywhere]">
+              {displayName}
+            </h1>
+            <div aria-hidden className="w-9 shrink-0" />
+          </div>
           {subcategories.length > 0 && (
-            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-1 px-2 pt-4 pb-3">
-              <div className="flex justify-center">
-                {subcategoryId ? (
-                  <Link
-                    href={
-                      childId
-                        ? `/category/${categoryId}?subcategory=${subcategoryId}`
-                        : `/category/${categoryId}`
-                    }
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#F8F8F6] transition-colors"
-                    aria-label={childId ? "Back to subcategory" : "Back to all subcategories"}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                  </Link>
-                ) : null}
-              </div>
+            <div className="px-2 pb-3 pt-1">
               <div className="flex min-w-0 flex-wrap justify-center gap-2">
                 {showChildPills
                   ? pillChildCategories.map((child) => {
@@ -502,10 +512,10 @@ export default function CategoryPage() {
                         <Link
                           key={child.id}
                           href={`/category/${categoryId}?subcategory=${subcategoryId}&child=${child.id}`}
-                          className={`shrink-0 rounded-sm border px-3 py-2.5 text-[10px] font-bold tracking-[0.15em] uppercase transition-colors ${
+                          className={`shrink-0 rounded-sm border px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${
                             active
                               ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
-                              : "border-[#1A1A1A] text-[#1A1A1A] bg-white hover:bg-[#F8F8F6]"
+                              : "border-[#1A1A1A] bg-white text-[#1A1A1A] hover:bg-[#F8F8F6]"
                           }`}
                         >
                           {child.name}
@@ -518,10 +528,10 @@ export default function CategoryPage() {
                         <Link
                           key={sub.id}
                           href={`/category/${categoryId}?subcategory=${sub.id}`}
-                          className={`shrink-0 rounded-sm border px-3 py-2.5 text-[10px] font-bold tracking-[0.15em] uppercase transition-colors ${
+                          className={`shrink-0 rounded-sm border px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${
                             active
                               ? "border-[#1A1A1A] bg-[#1A1A1A] text-white"
-                              : "border-[#1A1A1A] text-[#1A1A1A] bg-white hover:bg-[#F8F8F6]"
+                              : "border-[#1A1A1A] bg-white text-[#1A1A1A] hover:bg-[#F8F8F6]"
                           }`}
                         >
                           {sub.name}
@@ -529,12 +539,8 @@ export default function CategoryPage() {
                       );
                     })}
               </div>
-              <div aria-hidden className="w-9 shrink-0" />
             </div>
           )}
-          <h1 className="text-center text-lg font-bold text-[#1A1A1A] tracking-tight px-4 pb-3 capitalize">
-            {displayName}
-          </h1>
           <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center border-t border-[#E5E5E5] px-2 py-2.5 text-[#1A1A1A]">
             <div className="flex min-w-0 justify-start">
               <button

@@ -16,7 +16,7 @@ export const WishlistProvider = ({ children }) => {
 
   const addToWishlist = (product) => {
     setWishlist((prev) => {
-      if (prev.some((item) => item.id === product.id)) return prev;
+      if (prev.some((item) => String(item.id) === String(product.id))) return prev;
       const updated = [...prev, product];
       localStorage.setItem("wishlist", JSON.stringify(updated));
       return updated;
@@ -25,13 +25,13 @@ export const WishlistProvider = ({ children }) => {
 
   const removeFromWishlist = (productId) => {
     setWishlist((prev) => {
-      const updated = prev.filter((item) => item.id !== productId);
+      const updated = prev.filter((item) => String(item.id) !== String(productId));
       localStorage.setItem("wishlist", JSON.stringify(updated));
       return updated;
     });
   };
 
-  const isInWishlist = (productId) => wishlist.some((item) => item.id === productId);
+  const isInWishlist = (productId) => wishlist.some((item) => String(item.id) === String(productId));
 
   return (
     <WishlistContext.Provider value={{ wishlist, addToWishlist, removeFromWishlist, isInWishlist }}>

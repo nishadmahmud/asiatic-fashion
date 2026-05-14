@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 import { useCategories } from "@/context/CategoriesContext";
 import CategoryNavBar from "@/components/CategoryNavBar/CategoryNavBar";
+import { sortCategoriesForNav } from "@/lib/sortCategoriesForNav";
 
 export default function Header({ initialCategories = [] }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,28 +21,36 @@ export default function Header({ initialCategories = [] }) {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
-  const { user, openAuthDrawer } = useAuth();
+  const { user, openAuthDrawer, logout } = useAuth();
   const { wishlist } = useWishlist();
   const { getCartCount, toggleCart } = useCart();
   const { categories, seedCategories } = useCategories();
-
+  const navCategoriesOrdered = useMemo(() => sortCategoriesForNav(categories), [categories]);
 
   // Fetch categories for navigation
   useEffect(() => {
     seedCategories(initialCategories);
   }, [initialCategories, seedCategories]);
-  // Search handler with debounce
+  // Search handler with debounce (state updates deferred so effect body is sync-setState-free for lint)
   useEffect(() => {
     let ignore = false;
 
     if (!searchQuery || searchQuery.length < 2) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
+      const clearId = setTimeout(() => {
+        if (ignore) return;
+        setSearchResults([]);
+        setIsSearching(false);
+      }, 0);
+      return () => {
+        ignore = true;
+        clearTimeout(clearId);
+      };
     }
-    
-    setIsSearching(true);
-    
+
+    const startId = setTimeout(() => {
+      if (!ignore) setIsSearching(true);
+    }, 0);
+
     const timer = setTimeout(async () => {
       try {
         const response = await searchProducts(searchQuery);
@@ -63,9 +72,10 @@ export default function Header({ initialCategories = [] }) {
         if (!ignore) setIsSearching(false);
       }
     }, 400);
-    
+
     return () => {
       ignore = true;
+      clearTimeout(startId);
       clearTimeout(timer);
     };
   }, [searchQuery]);
@@ -97,15 +107,26 @@ export default function Header({ initialCategories = [] }) {
           </button>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <h1 className="text-xl md:text-2xl font-bold tracking-tighter text-[#1A1A1A] uppercase">
-              ASIATIC FASHION
-            </h1>
+          <Link href="/" className="relative flex shrink-0 items-center" aria-label="Asiatic Fashion home">
+            <Image
+              src="/logo.png"
+              alt="Asiatic Fashion"
+              width={240}
+              height={64}
+              className="h-8 w-auto object-contain object-left md:h-10"
+              priority
+            />
           </Link>
 
           {/* Right Nav */}
           <div className="flex items-center gap-6">
             <nav className="hidden md:flex items-center gap-8 text-xs font-bold tracking-widest uppercase text-[#1A1A1A]">
+              <Link
+                href="/offers"
+                className="animate-nav-offers-flash text-[#D97706] transition-colors hover:animate-none hover:text-[#B45309]"
+              >
+                Offers
+              </Link>
               <Link href="/track-order" className="hover:text-[#999999] transition-colors">
                 Track Order
               </Link>
@@ -165,7 +186,7 @@ export default function Header({ initialCategories = [] }) {
         </div>
       </div>
 
-      <CategoryNavBar categories={categories} variant="header" />
+      <CategoryNavBar categories={navCategoriesOrdered} variant="header" />
 
 
       {/* Search Bar Dropdown */}
@@ -245,9 +266,15 @@ export default function Header({ initialCategories = [] }) {
           <div className="relative w-[85%] max-w-[320px] h-full bg-white shadow-2xl flex flex-col transform transition-transform duration-300">
             {/* Drawer Header */}
             <div className="p-5 border-b border-[#F0F0F0] flex items-center justify-between bg-white sticky top-0 z-10">
-              <h1 className="text-sm font-black tracking-tighter text-[#1A1A1A] uppercase">
-                ASIATIC FASHION
-              </h1>
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} className="relative flex items-center" aria-label="Asiatic Fashion home">
+                <Image
+                  src="/logo.png"
+                  alt="Asiatic Fashion"
+                  width={200}
+                  height={52}
+                  className="h-7 w-auto object-contain object-left"
+                />
+              </Link>
               <button 
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F8F8F6] transition-colors"
@@ -282,7 +309,10 @@ export default function Header({ initialCategories = [] }) {
                         Profile
                       </Link>
                       <button 
-                        onClick={() => { useAuth().logout(); setMobileMenuOpen(false); }}
+                        onClick={() => {
+                          logout();
+                          setMobileMenuOpen(false);
+                        }}
                         className="flex items-center justify-center h-9 bg-white border border-[#E5E5E5] text-[10px] font-bold tracking-widest uppercase text-red-500 hover:bg-red-500 hover:text-white transition-all"
                       >
                         Logout
@@ -314,7 +344,7 @@ export default function Header({ initialCategories = [] }) {
               <div className="px-6 py-4">
                 <p className="text-[10px] font-bold tracking-widest uppercase text-[#999999] mb-4">Categories</p>
                 <div className="grid grid-cols-1 gap-2">
-                  {categories.map((cat) => {
+                  {navCategoriesOrdered.map((cat) => {
                     const subcategories = Array.isArray(cat.sub_category) ? cat.sub_category : [];
                     const hasSubcategories = subcategories.length > 0;
                     const isCategoryExpanded = String(expandedCategory) === String(cat.category_id);
@@ -441,6 +471,18 @@ export default function Header({ initialCategories = [] }) {
                 >
                   <span className="text-xs font-bold tracking-widest uppercase text-[#1A1A1A] group-hover:translate-x-1 transition-transform">Home</span>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                </Link>
+                <Link
+                  href="/offers"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between rounded-md border border-[#FDBA74]/80 bg-[#FFFBEB] py-3 pl-3 pr-2 group"
+                >
+                  <span className="text-xs font-bold tracking-widest uppercase text-[#B45309] transition-all group-hover:translate-x-1 group-hover:text-[#9A3412]">
+                    Offers
+                  </span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" className="group-hover:stroke-[#B45309] transition-colors">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
                 </Link>
                 <Link
                   href="/track-order"

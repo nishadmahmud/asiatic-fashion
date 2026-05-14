@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { getCategoriesFromServer } from "@/lib/api";
+import { sortCategoriesForNav } from "@/lib/sortCategoriesForNav";
 
 const CategoriesContext = createContext(null);
 
@@ -16,7 +17,7 @@ export function CategoriesProvider({ children }) {
     try {
       const response = await getCategoriesFromServer();
       if (response?.success && Array.isArray(response?.data)) {
-        setCategories(response.data);
+        setCategories(sortCategoriesForNav(response.data));
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -28,7 +29,7 @@ export function CategoriesProvider({ children }) {
 
   const seedCategories = useCallback((initialCategories) => {
     if (!Array.isArray(initialCategories) || initialCategories.length === 0) return;
-    setCategories((prev) => (prev.length > 0 ? prev : initialCategories));
+    setCategories((prev) => (prev.length > 0 ? prev : sortCategoriesForNav(initialCategories)));
     setLoaded(true);
   }, []);
 

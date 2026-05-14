@@ -49,7 +49,7 @@ export default function NewArrivals() {
           New Arrivals
         </h2>
         <Link
-          href="/category/16167"
+          href="/new-arrivals"
           className="text-xs font-bold tracking-widest uppercase text-[#999999] hover:text-[#1A1A1A] transition-colors"
         >
           View All

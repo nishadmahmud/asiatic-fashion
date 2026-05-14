@@ -2,6 +2,7 @@
 
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
+import { SITE_PHONE_TEL, SITE_PHONE_DISPLAY } from "@/lib/siteContact";
 
 export default function ContactPage() {
   return (
@@ -46,8 +47,8 @@ export default function ContactPage() {
                 <a href="mailto:info@asiaticfashion.com" className="text-sm text-[#1A1A1A] font-medium block hover:underline">
                   info@asiaticfashion.com
                 </a>
-                <a href="tel:+8801311340039" className="text-sm text-[#1A1A1A] font-medium block hover:underline">
-                  01311340039
+                <a href={`tel:${SITE_PHONE_TEL}`} className="text-sm text-[#1A1A1A] font-medium block hover:underline">
+                  {SITE_PHONE_DISPLAY}
                 </a>
                 <p className="text-xs text-[#666666] mt-2">Available Mon-Fri, 9am - 6pm (BST)</p>
               </div>

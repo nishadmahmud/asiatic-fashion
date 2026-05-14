@@ -66,10 +66,12 @@ export default function PromoCards() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
 
-            <div className="absolute bottom-0 left-0 w-full p-6 md:p-8 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
-              <h3 className="text-white text-xl md:text-2xl font-bold tracking-widest mb-4 uppercase leading-tight">
-                {card.title}
-              </h3>
+            <div className="absolute bottom-0 left-0 w-full p-6 md:p-8 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500 min-w-0">
+              <div className="max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <h3 className="text-white font-bold tracking-widest mb-4 uppercase leading-none whitespace-nowrap text-[clamp(10px,min(3.35vw,3.2vmin),1.5rem)] md:text-2xl md:leading-tight">
+                  {card.title}
+                </h3>
+              </div>
               <Link
                 href={card.link || "/category/16167"}
                 className="inline-flex items-center gap-3 text-white text-xs font-bold tracking-widest uppercase hover:text-gray-300 transition-colors relative after:content-[''] after:absolute after:-bottom-2 after:left-0 after:w-0 after:h-[1px] after:bg-white hover:after:w-full after:transition-all after:duration-300"

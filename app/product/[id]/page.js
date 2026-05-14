@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
@@ -11,6 +12,8 @@ import ProductImageLightbox from "@/components/ProductImageLightbox";
 import ProductCard from "@/components/ProductCard/ProductCard";
 import { getProductById, getRelatedProduct, getCampaigns } from "@/lib/api";
 import { transformProduct, buildCampaignDiscountMap } from "@/lib/transformProduct";
+import { buildPdpProductFromApi, getDefaultVariantSelection } from "@/lib/productPdpFromApi";
+import { readPdpSnapshot, writePdpSnapshot } from "@/lib/productSnapshot";
 import { useCart } from "@/context/CartContext";
 
 function applyPriceSaleRule(mrp, saleRule) {
@@ -48,184 +51,72 @@ export default function ProductDetailsPage() {
   const toggleAccordion = (section) => {
     setOpenAccordions((prev) => ({ ...prev, [section]: !prev[section] }));
   };
-  const isFixedDiscountType = (type) => {
-    const normalized = String(type || "").toLowerCase();
-    return normalized === "amount" || normalized === "fixed";
-  };
-  const decodeAndNormalizeHtml = (html) =>
-    String(html || "")
-      .replace(/&nbsp;/g, " ")
-      .trim();
 
-  // Fetch product data
+  // Instant paint from session snapshot (listing or last full PDP), then API revalidates.
+  useLayoutEffect(() => {
+    if (!productId) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- hydrate from sessionStorage before first paint */
+    const snap = readPdpSnapshot(productId);
+    if (snap?.pdp && String(snap.pdp.id) === String(productId)) {
+      setProduct(snap.pdp);
+      const sel = getDefaultVariantSelection({ product_variants: snap.pdp.product_variants || [] });
+      setSelectedSize(sel.selectedSize);
+      setSelectedLength(sel.selectedLength);
+      setLoading(false);
+    } else {
+      setProduct(null);
+      setLoading(true);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [productId]);
+
+  // Always revalidate in background; write full PDP back to sessionStorage for next visit.
   useEffect(() => {
     if (!productId) return;
 
+    let cancelled = false;
+    const snap = readPdpSnapshot(productId);
+    const hadUsableCache = !!(snap?.pdp && String(snap.pdp.id) === String(productId));
+
     const fetchProduct = async () => {
-      setLoading(true);
+      if (!hadUsableCache) setLoading(true);
       try {
         const data = await getProductById(productId);
 
+        if (cancelled) return;
+
         if (data.success && data.data) {
           const apiProduct = data.data;
-
-          // Price calculation
-          let mrp = Number(apiProduct.retails_price || 0);
-          if (mrp === 0 && apiProduct.product_variants?.length > 0) {
-            const firstVariant = apiProduct.product_variants[0];
-            if (firstVariant.price && parseFloat(firstVariant.price) > 0) {
-              mrp = parseFloat(firstVariant.price);
-            }
-          }
-
-          let finalPrice = mrp;
-          let discountLabel = "";
-          /** So variant-level prices get the same fixed / percent discount as the base MRP. */
-          let saleRule = { kind: "none", value: 0 };
-
-          // Campaign discount
-          if (apiProduct.campaigns && apiProduct.campaigns.length > 0) {
-            const campaign = apiProduct.campaigns[0];
-            const discountType = String(campaign.discount_type || "amount").toLowerCase();
-            if (isFixedDiscountType(discountType)) {
-              const amt = Number(campaign.discount) || 0;
-              saleRule = { kind: "fixed", value: amt };
-              finalPrice = Math.max(0, mrp - amt);
-              discountLabel = `৳${campaign.discount} OFF`;
-            } else {
-              const pct = Number(campaign.discount) || 0;
-              saleRule = { kind: "percent", value: pct };
-              finalPrice = Math.max(0, Math.round(mrp * (1 - pct / 100)));
-              discountLabel = `${campaign.discount}% OFF`;
-            }
-          } else if (apiProduct.discount > 0) {
-            const discountType = String(apiProduct.discount_type || "percentage").toLowerCase();
-            if (isFixedDiscountType(discountType)) {
-              const amt = Number(apiProduct.discount) || 0;
-              saleRule = { kind: "fixed", value: amt };
-              finalPrice = Math.max(0, mrp - amt);
-              discountLabel = `৳${apiProduct.discount} OFF`;
-            } else {
-              const pct = Number(apiProduct.discount) || 0;
-              saleRule = { kind: "percent", value: pct };
-              finalPrice = Math.max(0, Math.round(mrp * (1 - pct / 100)));
-              discountLabel = `${apiProduct.discount}% OFF`;
-            }
-          }
-
-          // Build variant map
-          const variantMap = {};
-          const unavailableSizes = [];
-          (apiProduct.product_variants || []).forEach((v) => {
-            variantMap[v.name] = { ...v, children: v.child_variants || [] };
-            if (v.child_variants && v.child_variants.length > 0) {
-              if (v.child_variants.every((c) => c.quantity === 0)) unavailableSizes.push(v.name);
-            } else if (v.quantity === 0) {
-              unavailableSizes.push(v.name);
-            }
-          });
-
-          // Build images
-          const images =
-            Array.isArray(apiProduct.image_paths) && apiProduct.image_paths.length > 0
-              ? apiProduct.image_paths
-              : [apiProduct.image_path, apiProduct.image_path1, apiProduct.image_path2].filter(
-                  (img) => typeof img === "string" && img.trim() !== ""
-                );
-
-          const specsArray = Array.isArray(apiProduct.specifications)
-            ? apiProduct.specifications
-            : [];
-          const resolvedDescription = decodeAndNormalizeHtml(
-            apiProduct.description || apiProduct.short_description || ""
-          );
-          const materialSpec =
-            specsArray.find((s) =>
-              String(s?.name || "")
-                .toLowerCase()
-                .includes("fabric")
-            )?.description ||
-            specsArray.find((s) =>
-              String(s?.name || "")
-                .toLowerCase()
-                .includes("material")
-            )?.description ||
-            null;
-          const washSpec =
-            specsArray.find((s) =>
-              String(s?.name || "")
-                .toLowerCase()
-                .includes("wash")
-            )?.description ||
-            specsArray.find((s) =>
-              String(s?.name || "")
-                .toLowerCase()
-                .includes("care")
-            )?.description ||
-            null;
-
-          const transformed = {
-            id: apiProduct.id,
-            name: apiProduct.name,
-            sku: String(apiProduct.id),
-            brand: apiProduct.brand?.name || apiProduct.brand_name || "ASIATIC",
-            category_name: apiProduct.category?.name || apiProduct.category_name || "",
-            retails_price: mrp,
-            price: finalPrice,
-            discount: apiProduct.discount || 0,
-            discountLabel,
-            saleRule,
-            image_paths: images,
-            color: [apiProduct.color || "Default"],
-            color_code: apiProduct.color_code || "#1A1A1A",
-            product_variants: apiProduct.product_variants || [],
-            variants: variantMap,
-            unavailableSizes,
-            specifications: specsArray,
-            description: resolvedDescription,
-            short_description: decodeAndNormalizeHtml(apiProduct.short_description || ""),
-            materialCare: {
-              material: materialSpec,
-              wash: washSpec,
-            },
-            manufacturerDetails: apiProduct.manufacturer_details || null,
-            packerDetails: apiProduct.packer_details || null,
-            importerDetails: apiProduct.importer_details || null,
-            sellerDetails: apiProduct.seller_details || null,
-            countryOfOrigin: apiProduct.country_of_origin || apiProduct.country || null,
-            size_chart_category: apiProduct.size_chart_category || null,
-            current_stock: apiProduct.current_stock || 0,
-            isOutOfStock: apiProduct.current_stock === 0,
-          };
-
+          const transformed = buildPdpProductFromApi(apiProduct);
           setProduct(transformed);
-
-          // Set default selected size
-          if (apiProduct.product_variants?.length > 0) {
-            const firstAvailable = apiProduct.product_variants.find((v) => v.quantity > 0);
-            if (firstAvailable) {
-              setSelectedSize(firstAvailable.name);
-              setSelectedLength(firstAvailable.child_variants?.[0]?.name || null);
-            } else {
-              setSelectedSize(apiProduct.product_variants[0].name);
-            }
-          }
+          const sel = getDefaultVariantSelection(apiProduct);
+          setSelectedSize(sel.selectedSize);
+          setSelectedLength(sel.selectedLength);
+          writePdpSnapshot(productId, transformed, { complete: true });
         }
       } catch (error) {
         console.error("Error fetching product:", error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchProduct();
+    return () => {
+      cancelled = true;
+    };
   }, [productId]);
 
   // Fetch related products
   useEffect(() => {
-    if (!productId || loading) return;
+    if (!productId || !product) return;
+
+    let cancelled = false;
 
     const fetchRelated = async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setRelatedProducts([]);
       try {
         let campaignMap = {};
         try {
@@ -246,7 +137,7 @@ export default function ProductDetailsPage() {
             .filter((item) => String(item.id) !== String(productId))
             .slice(0, 4)
             .map((p) => transformProduct(p, campaignMap));
-          setRelatedProducts(transformed);
+          if (!cancelled) setRelatedProducts(transformed);
         }
       } catch (error) {
         console.error("Error fetching related products:", error);
@@ -254,10 +145,22 @@ export default function ProductDetailsPage() {
     };
 
     fetchRelated();
-  }, [productId, loading]);
+    return () => {
+      cancelled = true;
+    };
+    // Only re-fetch when product id changes, not when the same product object is replaced after API refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- use product?.id on purpose
+  }, [productId, product?.id]);
 
   useEffect(() => {
-    setCurrentMobileImage(0);
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (!cancelled) setCurrentMobileImage(0);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [productId]);
 
   // MRP for selected variant (or product base); discount applied in getDisplayPrice via saleRule
@@ -390,7 +293,7 @@ export default function ProductDetailsPage() {
         {/* Breadcrumbs */}
         <nav className="flex text-xs md:text-sm text-[#6B6B6B] mb-6 md:mb-10 font-medium tracking-wide">
           <ol className="flex items-center space-x-2">
-            <li><a href="/" className="hover:text-[#1A1A1A] transition-colors">Home</a></li>
+            <li><Link href="/" className="hover:text-[#1A1A1A] transition-colors">Home</Link></li>
             <li><span className="mx-1 md:mx-2 text-[#E5E5E5]">{">"}</span></li>
             {product.category_name && (
               <>
@@ -534,7 +437,7 @@ export default function ProductDetailsPage() {
             </div>
 
             {/* Size */}
-            {product.product_variants.length > 0 && (() => {
+            {product.product_variants?.length > 0 && (() => {
               const selectedVariantForSize = product.product_variants.find(
                 (v) => v.name === selectedSize
               );
@@ -721,7 +624,7 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              {product.specifications.length > 0 && (
+              {product.specifications?.length > 0 && (
                 <div className="py-4 border-b border-[#E5E5E5]">
                   <button
                     onClick={() => toggleAccordion("specs")}

@@ -7,6 +7,7 @@ import BestDeals from "@/components/BestDeals/BestDeals";
 import FlashSale from "@/components/FlashSale/FlashSale";
 import BrandsSection from "@/components/BrandsSection/BrandsSection";
 import Newsletter from "@/components/Newsletter/Newsletter";
+import BlogSection from "@/components/BlogSection/BlogSection";
 import Footer from "@/components/Footer/Footer";
 import { getCategoriesFromServer } from "@/lib/api";
 
@@ -34,6 +35,7 @@ export default async function Home() {
         <BestDeals />
         <FlashSale />
         <Newsletter />
+        <BlogSection />
       </main>
       <Footer />
     </>

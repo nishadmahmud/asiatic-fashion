@@ -6,6 +6,9 @@ import { CategoriesProvider } from "@/context/CategoriesContext";
 import AuthDrawer from "@/components/AuthDrawer/AuthDrawer";
 import CartSidebar from "@/components/CartSidebar/CartSidebar";
 import MobileBottomNav from "@/components/MobileBottomNav/MobileBottomNav";
+import WelcomePopup from "@/components/WelcomePopup/WelcomePopup";
+import ScrollToTop from "@/components/ScrollToTop/ScrollToTop";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp/FloatingWhatsApp";
 import "./globals.css";
 
 const inter = Inter({
@@ -35,10 +38,13 @@ export default function RootLayout({ children }) {
           <WishlistProvider>
             <CategoriesProvider>
               <CartProvider>
+                <ScrollToTop />
                 {children}
                 <AuthDrawer />
                 <CartSidebar />
                 <MobileBottomNav />
+                <FloatingWhatsApp />
+                <WelcomePopup />
               </CartProvider>
             </CategoriesProvider>
           </WishlistProvider>

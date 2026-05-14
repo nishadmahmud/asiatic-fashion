@@ -5,12 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { getTopBrands } from "@/lib/api";
 
-const BrandGrid = ({ title, brands }) => (
+const BrandGrid = ({ title, brands, kicker }) => (
   <div className="mb-12 md:mb-20">
-    <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#E5E5E5]">
-      <h2 className="text-sm font-bold tracking-widest uppercase text-[#1A1A1A]">
-        {title}
-      </h2>
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-8 pb-5 border-b border-[#E5E5E5]">
+      <div>
+        {kicker ? (
+          <p className="text-[10px] font-bold tracking-[0.35em] uppercase text-[#999999] mb-2">{kicker}</p>
+        ) : null}
+        <h2 className="text-sm md:text-[15px] font-bold tracking-[0.2em] uppercase text-[#1A1A1A]">{title}</h2>
+      </div>
     </div>
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 md:gap-4">
       {brands.map((brand, index) => (
@@ -76,15 +79,29 @@ export default function BrandsSection() {
   }
 
   return (
-    <section className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-12 md:py-20" id="brands">
+    <section className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-14 md:py-24" id="brands">
+      <header className="mb-14 md:mb-20 max-w-3xl">
+        <p className="text-[10px] font-bold tracking-[0.42em] uppercase text-[#999999] mb-4">
+          Under the spotlight
+        </p>
+        <h2 className="text-[clamp(1.65rem,4.2vw,2.65rem)] font-medium text-[#1A1A1A] tracking-tight leading-[1.12] mb-5">
+          Labels we love — from Dhaka to the world
+        </h2>
+        <p className="text-[15px] md:text-base text-[#6B6B6B] leading-relaxed font-light max-w-2xl border-l-[3px] border-[#1A1A1A] pl-5 md:pl-6">
+          Handpicked partners with real craft behind the name: consistent quality, honest materials, and cuts
+          that feel lived-in from day one.
+        </p>
+      </header>
       {localBrands.length > 0 ? (
         <>
-          {internationalBrands.length > 0 && <BrandGrid title="International Brands" brands={internationalBrands} />}
-          <BrandGrid title="Local Brands" brands={localBrands} />
+          {internationalBrands.length > 0 && (
+            <BrandGrid title="International Brands" kicker="Global houses" brands={internationalBrands} />
+          )}
+          <BrandGrid title="Local Brands" kicker="Homegrown favourites" brands={localBrands} />
         </>
       ) : (
         /* If just a single list of brands */
-        <BrandGrid title="Featured Brands" brands={internationalBrands} />
+        <BrandGrid title="Featured Brands" kicker="Editor's picks" brands={internationalBrands} />
       )}
     </section>
   );

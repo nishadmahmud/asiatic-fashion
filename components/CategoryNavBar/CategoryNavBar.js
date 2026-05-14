@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
+import { sortCategoriesForNav } from "@/lib/sortCategoriesForNav";
 
 /**
  * Desktop category row; mega menu only when variant is "header" (not under hero).
@@ -11,11 +12,13 @@ export default function CategoryNavBar({ categories = [], variant = "header" }) 
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
   const megaEnabled = variant === "header";
 
-  if (!Array.isArray(categories) || categories.length === 0) {
+  const orderedCategories = useMemo(() => sortCategoriesForNav(categories), [categories]);
+
+  if (!Array.isArray(orderedCategories) || orderedCategories.length === 0) {
     return null;
   }
 
-  const firstCategoryId = categories[0]?.category_id;
+  const firstCategoryId = orderedCategories[0]?.category_id;
   const shopHref = firstCategoryId ? `/category/${firstCategoryId}` : "/#new-arrivals";
 
   const isHeroAttach = variant === "hero-attach";
@@ -26,7 +29,7 @@ export default function CategoryNavBar({ categories = [], variant = "header" }) 
     : "hidden md:flex border-t border-[#E5E5E5] bg-[#F8F8F6] relative";
 
   const innerRowClass = isHeroAttach
-    ? "relative mx-auto flex min-h-11 w-full max-w-[1600px] items-stretch md:min-h-14"
+    ? "relative flex w-full max-w-none items-stretch min-h-[3.75rem] md:min-h-[4.25rem] lg:min-h-[4.75rem]"
     : "w-full max-w-[1600px] mx-auto px-4 md:px-12 flex items-center justify-center gap-10 h-10 overflow-x-auto";
 
   return (
@@ -35,30 +38,32 @@ export default function CategoryNavBar({ categories = [], variant = "header" }) 
         <div className={innerRowClass}>
           <Link
             href={shopHref}
-            className="relative z-20 flex shrink-0 items-center justify-center px-4 sm:px-8 md:px-12 bg-[#E8E8E8] text-[9px] font-bold uppercase tracking-[0.2em] text-[#1A1A1A] transition-colors hover:bg-[#DDDDDD] sm:text-[10px] sm:tracking-[0.25em] md:text-[11px]"
+            className="relative z-20 flex shrink-0 items-center justify-center bg-[#D8D8D6] px-5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#1A1A1A] transition-colors hover:bg-[#CECECC] sm:px-8 sm:text-[11px] sm:tracking-[0.26em] md:min-w-[8.5rem] md:px-10 md:text-xs md:tracking-[0.28em] lg:min-w-[10rem] lg:text-[13px]"
             style={{
-              clipPath: "polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%)",
+              /* Diagonal cut — keep in sync with category row overlap below */
+              clipPath: "polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%)",
             }}
           >
             Shop Now
           </Link>
-          <div className="flex min-h-11 min-w-0 flex-1 items-center justify-center overflow-x-auto px-2 scrollbar-hide md:justify-start md:px-4 md:pl-8 md:pr-12 lg:pl-10">
-            <div className="flex shrink-0 items-center justify-center gap-x-[clamp(1rem,7vw,4.5rem)] md:justify-start md:gap-x-5 lg:gap-x-9">
-              {categories.map((cat) => (
-                <div key={cat.category_id} className="flex h-full shrink-0 items-center">
-                  <Link href={`/category/${cat.category_id}`}>
-                    <span className="cursor-pointer whitespace-nowrap text-[10px] font-bold tracking-[0.2em] text-[#1A1A1A] uppercase transition-colors hover:text-[#666666] md:text-[12px] md:font-extrabold md:tracking-[0.28em] lg:text-[13px] lg:tracking-[0.3em]">
-                      {cat.name}
-                    </span>
-                  </Link>
-                </div>
-              ))}
-            </div>
+          {/* Negative margin pulls category tiles under the clipped corner (transparent) so no white wedge */}
+          <div className="relative z-10 -ml-[18px] flex min-h-0 min-w-0 flex-1 items-stretch md:-ml-5">
+            {orderedCategories.map((cat, index) => (
+              <Link
+                key={cat.category_id}
+                href={`/category/${cat.category_id}`}
+                className={`flex min-h-0 min-w-0 flex-1 items-center justify-center bg-[#F4F3F1] px-2 py-3 text-center text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#1A1A1A] transition-colors hover:bg-[#EBEAE8] sm:text-xs sm:tracking-[0.22em] md:text-sm md:tracking-[0.24em] lg:text-[15px] lg:tracking-[0.26em] ${
+                  index > 0 ? "border-l border-[#DCDAD8]" : ""
+                }`}
+              >
+                <span className="truncate pl-1 md:pl-0">{cat.name}</span>
+              </Link>
+            ))}
           </div>
         </div>
       ) : (
         <div className={innerRowClass}>
-          {categories.map((cat) => (
+          {orderedCategories.map((cat) => (
             <div
               key={cat.category_id}
               className="h-full flex items-center"
@@ -79,10 +84,10 @@ export default function CategoryNavBar({ categories = [], variant = "header" }) 
 
       {megaEnabled &&
         activeMegaMenu &&
-        categories.find((c) => c.category_id === activeMegaMenu)?.sub_category?.length > 0 && (
+        orderedCategories.find((c) => c.category_id === activeMegaMenu)?.sub_category?.length > 0 && (
         <div className="absolute top-full left-0 w-full bg-[#1A1A1A] shadow-2xl z-[100] border-t border-[#333]">
           <div className="w-full max-w-[1600px] mx-auto px-4 md:px-12 py-12 flex justify-center gap-16 xl:gap-24">
-            {categories.find((c) => c.category_id === activeMegaMenu).sub_category.map((sub) => (
+            {orderedCategories.find((c) => c.category_id === activeMegaMenu).sub_category.map((sub) => (
               <div key={sub.id} className="flex flex-col min-w-[140px]">
                 <Link
                   href={`/category/${activeMegaMenu}?subcategory=${sub.id}`}

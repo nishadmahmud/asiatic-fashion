@@ -1,10 +1,13 @@
+import Image from "next/image";
 import Link from "next/link";
+import { SITE_PHONE_TEL, SITE_PHONE_DISPLAY } from "@/lib/siteContact";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   const quickLinks = [
     { name: "Shop All", href: "/category/16167" },
+    { name: "Blog", href: "/blog" },
     { name: "Wishlist", href: "/wishlist" },
     { name: "My Profile", href: "/profile" },
     { name: "Best Sellers", href: "/#products" },
@@ -63,10 +66,18 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="inline-block mb-6">
-              <h1 className="text-xl md:text-2xl font-bold tracking-tighter text-white uppercase">
-                ASIATIC FASHION
-              </h1>
+            <Link
+              href="/"
+              className="mb-6 inline-flex items-center justify-center rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-black/5 transition-opacity hover:opacity-90"
+              aria-label="Asiatic Fashion home"
+            >
+              <Image
+                src="/logo.png"
+                alt="Asiatic Fashion"
+                width={260}
+                height={70}
+                className="h-9 w-auto object-contain object-center md:h-10"
+              />
             </Link>
             <p className="text-sm leading-relaxed text-gray-400 max-w-xs">
               Discover quality fashion that reflects your style and makes
@@ -174,8 +185,8 @@ export default function Footer() {
                 >
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                 </svg>
-                <a href="tel:+8801311340039" className="hover:text-[#E8611A] transition-colors">
-                  01311340039
+                <a href={`tel:${SITE_PHONE_TEL}`} className="hover:text-[#E8611A] transition-colors">
+                  {SITE_PHONE_DISPLAY}
                 </a>
               </div>
             </div>

@@ -3,9 +3,12 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useWishlist } from "@/context/WishlistContext";
+import { persistListingSnapshotOnNavigate } from "@/lib/productSnapshot";
 
 export default function ProductCard({ product, showMobileArrows = false }) {
   const [currentImg, setCurrentImg] = useState(0);
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
   const brand = product.brand || "ASIATIC";
   const colors = product.colors || ["#1A1A1A"];
@@ -13,6 +16,8 @@ export default function ProductCard({ product, showMobileArrows = false }) {
   const originalPrice = product.originalPrice || null;
   const discount = product.discount || "";
   const productLink = `/product/${product.id || 240158}`;
+  const productId = product.id;
+  const inWishlist = productId != null && isInWishlist(productId);
 
   // Build images array — support both single `image` and `images[]`
   const images = (() => {
@@ -35,9 +40,33 @@ export default function ProductCard({ product, showMobileArrows = false }) {
     setCurrentImg((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
+  const handleWishlistClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (productId == null) return;
+    if (inWishlist) {
+      removeFromWishlist(productId);
+      return;
+    }
+    const imgs =
+      Array.isArray(product.image_paths) && product.image_paths.length > 0
+        ? product.image_paths
+        : images;
+    addToWishlist({
+      ...product,
+      image_paths: imgs,
+      image_path: imgs[0] || product.image_path,
+      image: imgs[0] || product.image,
+    });
+  };
+
   return (
     <div className="group cursor-pointer w-full">
-      <Link href={productLink} className="block">
+      <Link
+        href={productLink}
+        className="block"
+        onClick={() => persistListingSnapshotOnNavigate(product)}
+      >
         {/* Image Container */}
         <div className="relative w-full aspect-[3/4] bg-[#F8F8F6] overflow-hidden mb-4">
           <Image
@@ -54,6 +83,30 @@ export default function ProductCard({ product, showMobileArrows = false }) {
               {discount}
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={handleWishlistClick}
+            className={`absolute top-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/45 shadow-sm backdrop-blur-md transition-all hover:bg-white/70 ${
+              inWishlist ? "text-[#1A1A1A]" : "text-[#1A1A1A]/70 hover:text-[#1A1A1A]"
+            }`}
+            aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+            aria-pressed={inWishlist}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill={inWishlist ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          </button>
 
           {/* Desktop arrows (hover) + optional mobile arrows for list view */}
           {hasMultiple && (

@@ -24,6 +24,18 @@ export default function MobileBottomNav() {
       ),
     },
     {
+      label: "Offers",
+      href: "/offers",
+      matchPrefix: "/offers",
+      offerAccent: true,
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+          <line x1="7" y1="7" x2="7.01" y2="7" />
+        </svg>
+      ),
+    },
+    {
       label: "Wishlist",
       href: "/wishlist",
       icon: (
@@ -62,15 +74,28 @@ export default function MobileBottomNav() {
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-[#E5E5E5] px-6 h-16 safe-area-inset-bottom">
       <nav className="flex items-center justify-between h-full max-w-lg mx-auto">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = item.matchPrefix
+            ? pathname === item.href || pathname.startsWith(`${item.matchPrefix}/`)
+            : pathname === item.href;
+          const offerAccent = Boolean(item.offerAccent);
+          const iconTone = offerAccent
+            ? isActive
+              ? "text-[#9A3412]"
+              : "text-[#EA580C]"
+            : isActive
+              ? "text-[#1A1A1A]"
+              : "text-[#999999]";
+          const labelTone = offerAccent
+            ? isActive
+              ? "text-[#9A3412]"
+              : "text-[#EA580C]"
+            : isActive
+              ? "text-[#1A1A1A]"
+              : "text-[#999999]";
           const content = (
             <div className="relative flex flex-col items-center gap-1">
-              <div className={`${isActive ? "text-[#1A1A1A]" : "text-[#999999]"} transition-colors`}>
-                {item.icon}
-              </div>
-              <span className={`text-[9px] font-bold tracking-widest uppercase ${isActive ? "text-[#1A1A1A]" : "text-[#999999]"} transition-colors`}>
-                {item.label}
-              </span>
+              <div className={`${iconTone} transition-colors`}>{item.icon}</div>
+              <span className={`text-[9px] font-bold tracking-widest uppercase ${labelTone} transition-colors`}>{item.label}</span>
               {item.badge > 0 && (
                 <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-[#1A1A1A] text-white text-[8px] rounded-full flex items-center justify-center font-bold">
                   {item.badge}
